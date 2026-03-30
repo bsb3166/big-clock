@@ -798,13 +798,27 @@
 
     .todo-item {
       display: grid;
-      grid-template-columns: 20px 1fr 24px;
+      grid-template-columns: 18px 20px 1fr 24px;
       gap: 10px;
       align-items: center;
       padding: 8px 10px;
       border-radius: 12px;
       background: rgba(255,255,255,0.03);
       border: 1px solid rgba(255,255,255,0.05);
+      cursor: grab;
+    }
+
+    .todo-item.dragging {
+      opacity: 0.55;
+      cursor: grabbing;
+    }
+
+    .todo-handle {
+      color: rgba(255,255,255,0.35);
+      font-size: 14px;
+      line-height: 1;
+      user-select: none;
+      text-align: center;
     }
 
     .todo-check {
@@ -1363,6 +1377,29 @@
       return true;
     }
 
+    function setupTodoDragAndDrop() {
+      if (!todoListEl) return;
+      todoListEl.addEventListener('dragover', (e) => {
+        e.preventDefault();
+        const dragging = todoListEl.querySelector('.todo-item.dragging');
+        if (!dragging) return;
+        const items = [...todoListEl.querySelectorAll('.todo-item:not(.dragging)')];
+        const next = items.find(item => e.clientY <= item.getBoundingClientRect().top + item.getBoundingClientRect().height / 2);
+        if (next) {
+          todoListEl.insertBefore(dragging, next);
+        } else {
+          todoListEl.appendChild(dragging);
+        }
+      });
+
+      todoListEl.addEventListener('drop', () => {
+        const order = [...todoListEl.querySelectorAll('.todo-item')].map(el => Number(el.dataset.index));
+        todoItems = order.map(i => todoItems[i]).filter(Boolean);
+        renderTodoList();
+        saveSettings();
+      });
+    }
+
     function addTodoItem() {
       if (!todoInput) return;
       const value = todoInput.value.trim();
@@ -1732,6 +1769,7 @@
     setPanelCollapsed(customPanel, !!savedSettings.customCollapsed, expandCustomBtn);
     if (todoPanel) setPanelCollapsed(todoPanel, savedSettings.todoCollapsed === true, expandTodoBtn);
     renderTodoList();
+    setupTodoDragAndDrop();
     updateClock();
     setInterval(updateClock, 250);
   </script>
