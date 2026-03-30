@@ -787,7 +787,7 @@
       <div class="divider"></div>
       <div class="slider-wrap">
         <label for="sizeSlider">Size</label>
-        <input id="sizeSlider" type="range" min="10" max="200" step="1" value="100" />
+        <input id="sizeSlider" type="range" min="10" max="400" step="1" value="100" />
         <span class="slider-value" id="sizeValue">100%</span>
       </div>
       <div class="divider"></div>
@@ -1412,7 +1412,7 @@
 
     const savedSettings = loadSettings();
     if (typeof savedSettings.sizePercent === 'number') {
-      sizePercent = Math.min(200, Math.max(10, savedSettings.sizePercent));
+      sizePercent = Math.min(400, Math.max(10, savedSettings.sizePercent));
       sizeSlider.value = String(sizePercent);
     }
     if (typeof savedSettings.panelOpacityPercent === 'number') {
