@@ -311,6 +311,10 @@
       text-shadow: 0 0 10px rgba(255,179,90,0.24), 0 0 22px rgba(255,179,90,0.22), 0 0 42px rgba(255,179,90,0.16);
     }
 
+    .time.led-mixed-style .led-mixed-digit {
+      transition: color .2s ease, text-shadow .2s ease;
+    }
+
     .time.led-style .ampm {
       opacity: 0.92;
     }
@@ -804,6 +808,7 @@
           <option value="led-green">LED neon green</option>
           <option value="led-blue">LED neon blue</option>
           <option value="led-orange">LED neon orange</option>
+          <option value="led-mixed">LED neon mixed</option>
           <option value="segment">7 segment</option>
           <option value="flip">Flip clock</option>
           <option value="retro">Retro tech</option>
@@ -990,6 +995,12 @@
           weight: '700',
           transform: 'uppercase'
         },
+        'led-mixed': {
+          font: '"Orbitron", "Segoe UI", sans-serif',
+          spacing: '-0.045em',
+          weight: '700',
+          transform: 'uppercase'
+        },
         flip: {
           font: '"Inter", "Segoe UI", sans-serif',
           spacing: '0',
@@ -1060,8 +1071,40 @@
       `;
     }
 
+    function applyMixedNeonColors() {
+      if (clockStyleSelect.value !== 'led-mixed') return;
+      const palette = [
+        { color: '#7dff4f', glow: '0 0 10px rgba(121,255,71,0.24), 0 0 22px rgba(121,255,71,0.22), 0 0 42px rgba(121,255,71,0.14)' },
+        { color: '#89ecff', glow: '0 0 10px rgba(137,236,255,0.26), 0 0 22px rgba(137,236,255,0.24), 0 0 42px rgba(137,236,255,0.18)' },
+        { color: '#ffb35a', glow: '0 0 10px rgba(255,179,90,0.24), 0 0 22px rgba(255,179,90,0.22), 0 0 42px rgba(255,179,90,0.16)' },
+        { color: '#ff7ae6', glow: '0 0 10px rgba(255,122,230,0.24), 0 0 22px rgba(255,122,230,0.22), 0 0 42px rgba(255,122,230,0.16)' },
+        { color: '#c18cff', glow: '0 0 10px rgba(193,140,255,0.24), 0 0 22px rgba(193,140,255,0.22), 0 0 42px rgba(193,140,255,0.16)' }
+      ];
+
+      const chars = Array.from(timeEl.querySelectorAll('.led-mixed-digit'));
+      chars.forEach(el => {
+        const pick = palette[Math.floor(Math.random() * palette.length)];
+        el.style.color = pick.color;
+        el.style.textShadow = pick.glow;
+      });
+
+      const ampm = document.getElementById('ampm');
+      if (ampm && ampm.style.display !== 'none') {
+        const pick = palette[Math.floor(Math.random() * palette.length)];
+        ampm.style.color = pick.color;
+        ampm.style.textShadow = pick.glow;
+      }
+
+      const colon = document.getElementById('colon');
+      if (colon) {
+        const pick = palette[Math.floor(Math.random() * palette.length)];
+        colon.style.color = pick.color;
+        colon.style.textShadow = pick.glow;
+      }
+    }
+
     function renderStandardClock(hoursText, minutesText, ampmText) {
-      timeEl.classList.remove('flip-style', 'led-style', 'led-green-style', 'led-blue-style', 'led-orange-style', 'segment-style');
+      timeEl.classList.remove('flip-style', 'led-style', 'led-green-style', 'led-blue-style', 'led-orange-style', 'led-mixed-style', 'segment-style');
       if (clockStyleSelect.value === 'led-green') {
         timeEl.classList.add('led-style', 'led-green-style');
       }
@@ -1071,12 +1114,25 @@
       if (clockStyleSelect.value === 'led-orange') {
         timeEl.classList.add('led-style', 'led-orange-style');
       }
-      timeEl.innerHTML = `
-        <span id="hours">${hoursText}</span>
-        <span class="colon" id="colon">:</span>
-        <span id="minutes">${minutesText}</span>
-        <span class="ampm" id="ampm" ${use24Hour ? 'style="display:none"' : ''}>${ampmText}</span>
-      `;
+      if (clockStyleSelect.value === 'led-mixed') {
+        timeEl.classList.add('led-style', 'led-mixed-style');
+      }
+      if (clockStyleSelect.value === 'led-mixed') {
+        timeEl.innerHTML = `
+          <span class="led-mixed-digit" id="hours">${hoursText}</span>
+          <span class="colon" id="colon">:</span>
+          <span class="led-mixed-digit" id="minutes">${minutesText}</span>
+          <span class="ampm" id="ampm" ${use24Hour ? 'style="display:none"' : ''}>${ampmText}</span>
+        `;
+        applyMixedNeonColors();
+      } else {
+        timeEl.innerHTML = `
+          <span id="hours">${hoursText}</span>
+          <span class="colon" id="colon">:</span>
+          <span id="minutes">${minutesText}</span>
+          <span class="ampm" id="ampm" ${use24Hour ? 'style="display:none"' : ''}>${ampmText}</span>
+        `;
+      }
     }
 
     function renderFlipClock(hoursText, minutesText, ampmText) {
