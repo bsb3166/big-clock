@@ -445,6 +445,10 @@
       transition: opacity .18s ease, transform .18s ease;
     }
 
+    .todo-panel::-webkit-resizer {
+      background: linear-gradient(135deg, transparent 0 50%, rgba(255,255,255,0.28) 50% 60%, transparent 60% 100%);
+    }
+
     .quick-panel { left: 22px; }
     .custom-panel { right: 22px; width: 260px; }
 
@@ -715,7 +719,11 @@
       bottom: 20px;
       transform: translateX(-50%);
       width: min(92vw, 760px);
-      max-height: 28vh;
+      height: min(28vh, 260px);
+      min-width: 320px;
+      min-height: 140px;
+      max-width: 92vw;
+      max-height: 50vh;
       padding: 12px 14px;
       display: flex;
       flex-direction: column;
@@ -724,6 +732,22 @@
       overflow: hidden;
       transition: opacity .18s ease, transform .18s ease;
     }
+
+    .todo-resize-handle {
+      position: absolute;
+      width: 16px;
+      height: 16px;
+      z-index: 2;
+      background: transparent;
+    }
+
+    .todo-resize-handle.tl { top: 4px; left: 4px; cursor: nwse-resize; }
+    .todo-resize-handle.tr { top: 4px; right: 4px; cursor: nesw-resize; }
+    .todo-resize-handle.bl { bottom: 4px; left: 4px; cursor: nesw-resize; }
+    .todo-resize-handle.br { bottom: 4px; right: 4px; cursor: nwse-resize; }
+    .todo-resize-handle.t-edge { top: 0; left: 18px; right: 18px; height: 10px; width: auto; cursor: ns-resize; }
+    .todo-resize-handle.l-edge { top: 18px; bottom: 18px; left: 0; width: 10px; height: auto; cursor: ew-resize; }
+    .todo-resize-handle.r-edge { top: 18px; bottom: 18px; right: 0; width: 10px; height: auto; cursor: ew-resize; }
 
     .todo-panel.collapsed {
       opacity: 0;
@@ -798,27 +822,13 @@
 
     .todo-item {
       display: grid;
-      grid-template-columns: 18px 20px 1fr 24px;
+      grid-template-columns: 20px 1fr 24px;
       gap: 10px;
       align-items: center;
       padding: 8px 10px;
       border-radius: 12px;
       background: rgba(255,255,255,0.03);
       border: 1px solid rgba(255,255,255,0.05);
-      cursor: grab;
-    }
-
-    .todo-item.dragging {
-      opacity: 0.55;
-      cursor: grabbing;
-    }
-
-    .todo-handle {
-      color: rgba(255,255,255,0.35);
-      font-size: 14px;
-      line-height: 1;
-      user-select: none;
-      text-align: center;
     }
 
     .todo-check {
@@ -1033,6 +1043,13 @@
     </aside>
 
     <aside class="todo-panel panel" id="todoPanel">
+      <div class="todo-resize-handle tl" data-resize="tl"></div>
+      <div class="todo-resize-handle tr" data-resize="tr"></div>
+      <div class="todo-resize-handle bl" data-resize="bl"></div>
+      <div class="todo-resize-handle br" data-resize="br"></div>
+      <div class="todo-resize-handle t-edge" data-resize="t"></div>
+      <div class="todo-resize-handle l-edge" data-resize="l"></div>
+      <div class="todo-resize-handle r-edge" data-resize="r"></div>
       <div class="todo-header">
         <div class="todo-title">To-do list</div>
         <button class="mini-toggle" id="collapseTodoBtn" type="button">−</button>
@@ -1089,6 +1106,7 @@
     const todoInput = document.getElementById('todoInput');
     const addTodoBtn = document.getElementById('addTodoBtn');
     const todoListEl = document.getElementById('todoList');
+    const todoResizeHandles = Array.from(document.querySelectorAll('.todo-resize-handle'));
     const customMinutesEl = document.getElementById('customMinutes');
     const customSecondsEl = document.getElementById('customSeconds');
     const startCustomTimerBtn = document.getElementById('startCustomTimer');
@@ -1134,6 +1152,8 @@
         quickCollapsed: quickPanel.classList.contains('collapsed'),
         customCollapsed: customPanel.classList.contains('collapsed'),
         todoCollapsed: todoPanel ? todoPanel.classList.contains('collapsed') : false,
+        todoWidth: todoPanel ? todoPanel.style.width : '',
+        todoHeight: todoPanel ? todoPanel.style.height : '',
         todoItems
       };
 
@@ -1375,29 +1395,6 @@
       renderTodoList();
       saveSettings();
       return true;
-    }
-
-    function setupTodoDragAndDrop() {
-      if (!todoListEl) return;
-      todoListEl.addEventListener('dragover', (e) => {
-        e.preventDefault();
-        const dragging = todoListEl.querySelector('.todo-item.dragging');
-        if (!dragging) return;
-        const items = [...todoListEl.querySelectorAll('.todo-item:not(.dragging)')];
-        const next = items.find(item => e.clientY <= item.getBoundingClientRect().top + item.getBoundingClientRect().height / 2);
-        if (next) {
-          todoListEl.insertBefore(dragging, next);
-        } else {
-          todoListEl.appendChild(dragging);
-        }
-      });
-
-      todoListEl.addEventListener('drop', () => {
-        const order = [...todoListEl.querySelectorAll('.todo-item')].map(el => Number(el.dataset.index));
-        todoItems = order.map(i => todoItems[i]).filter(Boolean);
-        renderTodoList();
-        saveSettings();
-      });
     }
 
     function addTodoItem() {
@@ -1656,6 +1653,48 @@
       }
     }
 
+    function setupTodoResize() {
+      if (!todoPanel || !todoResizeHandles.length) return;
+
+      todoResizeHandles.forEach(handle => {
+        handle.addEventListener('pointerdown', (e) => {
+          e.preventDefault();
+          const startX = e.clientX;
+          const startY = e.clientY;
+          const startWidth = todoPanel.offsetWidth;
+          const startHeight = todoPanel.offsetHeight;
+          const mode = handle.dataset.resize;
+
+          function onMove(ev) {
+            const dx = ev.clientX - startX;
+            const dy = ev.clientY - startY;
+            let nextWidth = startWidth;
+            let nextHeight = startHeight;
+
+            if (mode.includes('r')) nextWidth = startWidth + dx;
+            if (mode.includes('l')) nextWidth = startWidth - dx;
+            if (mode.includes('b')) nextHeight = startHeight + dy;
+            if (mode.includes('t')) nextHeight = startHeight - dy;
+
+            nextWidth = Math.max(320, Math.min(window.innerWidth * 0.92, nextWidth));
+            nextHeight = Math.max(140, Math.min(window.innerHeight * 0.5, nextHeight));
+
+            todoPanel.style.width = `${nextWidth}px`;
+            todoPanel.style.height = `${nextHeight}px`;
+          }
+
+          function onUp() {
+            window.removeEventListener('pointermove', onMove);
+            window.removeEventListener('pointerup', onUp);
+            saveSettings();
+          }
+
+          window.addEventListener('pointermove', onMove);
+          window.addEventListener('pointerup', onUp);
+        });
+      });
+    }
+
     function isTypingInTodo() {
       const active = document.activeElement;
       if (!active) return false;
@@ -1767,9 +1806,13 @@
     setMode(use24Hour);
     setPanelCollapsed(quickPanel, !!savedSettings.quickCollapsed, expandQuickBtn);
     setPanelCollapsed(customPanel, !!savedSettings.customCollapsed, expandCustomBtn);
-    if (todoPanel) setPanelCollapsed(todoPanel, savedSettings.todoCollapsed === true, expandTodoBtn);
+    if (todoPanel) {
+      if (typeof savedSettings.todoWidth === 'string' && savedSettings.todoWidth) todoPanel.style.width = savedSettings.todoWidth;
+      if (typeof savedSettings.todoHeight === 'string' && savedSettings.todoHeight) todoPanel.style.height = savedSettings.todoHeight;
+      setPanelCollapsed(todoPanel, savedSettings.todoCollapsed === true, expandTodoBtn);
+      setupTodoResize();
+    }
     renderTodoList();
-    setupTodoDragAndDrop();
     updateClock();
     setInterval(updateClock, 250);
   </script>
