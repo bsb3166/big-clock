@@ -708,6 +708,139 @@
       cursor: pointer;
     }
 
+
+    .todo-panel {
+      position: absolute;
+      left: 50%;
+      bottom: 20px;
+      transform: translateX(-50%);
+      width: min(92vw, 760px);
+      max-height: 28vh;
+      padding: 12px 14px;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+      z-index: 9;
+      overflow: hidden;
+      transition: opacity .18s ease, transform .18s ease;
+    }
+
+    .todo-panel.collapsed {
+      opacity: 0;
+      pointer-events: none;
+      transform: translateX(-50%) translateY(8px);
+    }
+
+    .todo-fab {
+      position: absolute;
+      left: 50%;
+      bottom: 20px;
+      transform: translateX(-50%);
+      width: 30px;
+      height: 30px;
+      padding: 0;
+      border-radius: 10px;
+      display: none;
+      align-items: center;
+      justify-content: center;
+      z-index: 10;
+    }
+
+    .todo-fab.visible {
+      display: inline-flex;
+    }
+
+    .todo-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+    }
+
+    .todo-title {
+      font-size: 12px;
+      font-weight: 800;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      color: rgba(255,255,255,0.6);
+    }
+
+    .todo-input-row {
+      display: flex;
+      gap: 8px;
+      align-items: center;
+    }
+
+    .todo-input {
+      flex: 1;
+      min-width: 0;
+      padding: 10px 12px;
+      border-radius: 12px;
+      border: 1px solid rgba(255,255,255,0.1);
+      background: rgba(255,255,255,0.05);
+      color: white;
+      font-size: 14px;
+      font-weight: 600;
+      outline: none;
+    }
+
+    .todo-list {
+      overflow-y: auto;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+      padding-right: 2px;
+    }
+
+    .todo-item {
+      display: grid;
+      grid-template-columns: 20px 1fr 24px;
+      gap: 10px;
+      align-items: center;
+      padding: 8px 10px;
+      border-radius: 12px;
+      background: rgba(255,255,255,0.03);
+      border: 1px solid rgba(255,255,255,0.05);
+    }
+
+    .todo-check {
+      width: 16px;
+      height: 16px;
+      cursor: pointer;
+      accent-color: #f3dcc3;
+    }
+
+    .todo-text {
+      width: 100%;
+      border: none;
+      background: transparent;
+      color: rgba(255,255,255,0.92);
+      font-size: 14px;
+      font-weight: 600;
+      outline: none;
+      padding: 0;
+    }
+
+    .todo-item.done .todo-text {
+      text-decoration: line-through;
+      color: rgba(255,255,255,0.45);
+    }
+
+    .todo-delete {
+      width: 22px;
+      height: 22px;
+      padding: 0;
+      border-radius: 8px;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 14px;
+      line-height: 1;
+      color: #ff8b8b;
+      border-color: rgba(255, 122, 122, 0.22);
+      background: rgba(255, 122, 122, 0.10);
+    }
+
     .hint {
       position: absolute;
       right: 28px;
@@ -881,6 +1014,19 @@
       </div>
     </aside>
 
+    <aside class="todo-panel panel" id="todoPanel">
+      <div class="todo-header">
+        <div class="todo-title">To-do list</div>
+        <button class="mini-toggle" id="collapseTodoBtn" type="button">−</button>
+      </div>
+      <div class="todo-input-row">
+        <input id="todoInput" class="todo-input" type="text" placeholder="Add a to-do item" />
+        <button class="action-btn primary" id="addTodoBtn" type="button">Add</button>
+      </div>
+      <div class="todo-list" id="todoList"></div>
+    </aside>
+    <button class="mini-toggle todo-fab" id="expandTodoBtn" type="button">+</button>
+
     <div class="hint">F = fullscreen · T = 12/24h · Esc = stop alarm</div>
 
     <div class="alarm-modal-backdrop" id="alarmModalBackdrop">
@@ -919,6 +1065,12 @@
     const expandCustomBtn = document.getElementById('expandCustomBtn');
 
     const presetButtons = Array.from(document.querySelectorAll('.chip'));
+    const todoPanel = document.getElementById('todoPanel');
+    const collapseTodoBtn = document.getElementById('collapseTodoBtn');
+    const expandTodoBtn = document.getElementById('expandTodoBtn');
+    const todoInput = document.getElementById('todoInput');
+    const addTodoBtn = document.getElementById('addTodoBtn');
+    const todoListEl = document.getElementById('todoList');
     const customMinutesEl = document.getElementById('customMinutes');
     const customSecondsEl = document.getElementById('customSeconds');
     const startCustomTimerBtn = document.getElementById('startCustomTimer');
@@ -943,6 +1095,7 @@
     let alarmInterval = null;
     let alarmStopTimeout = null;
     let alarmActive = false;
+    let todoItems = [];
     const ALARM_DURATION_MS = 20000;
 
     function loadSettings() {
@@ -961,7 +1114,9 @@
         panelOpacityPercent,
         clockStyle: clockStyleSelect.value,
         quickCollapsed: quickPanel.classList.contains('collapsed'),
-        customCollapsed: customPanel.classList.contains('collapsed')
+        customCollapsed: customPanel.classList.contains('collapsed'),
+        todoCollapsed: todoPanel ? todoPanel.classList.contains('collapsed') : false,
+        todoItems
       };
 
       try {
@@ -1147,6 +1302,59 @@
         <span class="flip-card">${minuteChars[0]}</span>
         <span class="flip-card">${minuteChars[1]}</span>
       `;
+    }
+
+    function renderTodoList() {
+      if (!todoListEl) return;
+      todoListEl.innerHTML = '';
+      todoItems.forEach((item, index) => {
+        const row = document.createElement('div');
+        row.className = `todo-item ${item.done ? 'done' : ''}`;
+        row.innerHTML = `
+          <input class="todo-check" type="checkbox" ${item.done ? 'checked' : ''} />
+          <input class="todo-text" type="text" value=${JSON.stringify('')} />
+          <button class="mini-toggle todo-delete" type="button">×</button>
+        `;
+        const check = row.querySelector('.todo-check');
+        const textInput = row.querySelector('.todo-text');
+        const del = row.querySelector('.todo-delete');
+        textInput.value = item.text;
+
+        check.addEventListener('change', () => {
+          todoItems[index].done = check.checked;
+          renderTodoList();
+          saveSettings();
+        });
+
+        textInput.addEventListener('input', () => {
+          const value = textInput.value;
+          if (value.trim() === '') {
+            todoItems.splice(index, 1);
+            renderTodoList();
+          } else {
+            todoItems[index].text = value;
+          }
+          saveSettings();
+        });
+
+        del.addEventListener('click', () => {
+          todoItems.splice(index, 1);
+          renderTodoList();
+          saveSettings();
+        });
+
+        todoListEl.appendChild(row);
+      });
+    }
+
+    function addTodoItem() {
+      if (!todoInput) return;
+      const value = todoInput.value.trim();
+      if (!value) return;
+      todoItems.push({ text: value, done: false });
+      todoInput.value = '';
+      renderTodoList();
+      saveSettings();
     }
 
     function getZoneLongName(date) {
@@ -1412,6 +1620,10 @@
     collapseCustomBtn.addEventListener('click', () => setPanelCollapsed(customPanel, true, expandCustomBtn));
     expandCustomBtn.addEventListener('click', () => setPanelCollapsed(customPanel, false, expandCustomBtn));
     alarmStopBtn.addEventListener('click', stopAlarm);
+    if (collapseTodoBtn) collapseTodoBtn.addEventListener('click', () => setPanelCollapsed(todoPanel, true, expandTodoBtn));
+    if (expandTodoBtn) expandTodoBtn.addEventListener('click', () => setPanelCollapsed(todoPanel, false, expandTodoBtn));
+    if (addTodoBtn) addTodoBtn.addEventListener('click', addTodoItem);
+    if (todoInput) todoInput.addEventListener('keydown', (e) => { if (e.key === 'Enter') addTodoItem(); });
 
     sizeSlider.addEventListener('input', () => {
       sizePercent = Number(sizeSlider.value);
@@ -1459,6 +1671,7 @@
       if (key === 't') setMode(!use24Hour);
       if (key === 'q') setPanelCollapsed(quickPanel, !quickPanel.classList.contains('collapsed'), expandQuickBtn);
       if (key === 'w') setPanelCollapsed(customPanel, !customPanel.classList.contains('collapsed'), expandCustomBtn);
+      if (key === 'r' && todoPanel) setPanelCollapsed(todoPanel, !todoPanel.classList.contains('collapsed'), expandTodoBtn);
       if (key === 'escape' && alarmActive) stopAlarm();
     });
 
@@ -1478,12 +1691,17 @@
     if (typeof savedSettings.use24Hour === 'boolean') {
       use24Hour = savedSettings.use24Hour;
     }
+    if (Array.isArray(savedSettings.todoItems)) {
+      todoItems = savedSettings.todoItems.filter(item => item && typeof item.text === 'string').map(item => ({ text: item.text, done: !!item.done }));
+    }
 
     applyPanelOpacity();
     applyClockStyle(savedSettings.clockStyle || 'default');
     setMode(use24Hour);
     setPanelCollapsed(quickPanel, !!savedSettings.quickCollapsed, expandQuickBtn);
     setPanelCollapsed(customPanel, !!savedSettings.customCollapsed, expandCustomBtn);
+    if (todoPanel) setPanelCollapsed(todoPanel, savedSettings.todoCollapsed === true, expandTodoBtn);
+    renderTodoList();
     updateClock();
     setInterval(updateClock, 250);
   </script>
