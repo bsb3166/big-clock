@@ -774,6 +774,8 @@
     .todo-input {
       flex: 1;
       min-width: 0;
+      min-height: 42px;
+      max-height: 120px;
       padding: 10px 12px;
       border-radius: 12px;
       border: 1px solid rgba(255,255,255,0.1);
@@ -782,6 +784,8 @@
       font-size: 14px;
       font-weight: 600;
       outline: none;
+      resize: vertical;
+      white-space: pre-wrap;
     }
 
     .todo-list {
@@ -1020,7 +1024,7 @@
         <button class="mini-toggle" id="collapseTodoBtn" type="button">−</button>
       </div>
       <div class="todo-input-row">
-        <input id="todoInput" class="todo-input" type="text" placeholder="Add a to-do item" />
+        <textarea id="todoInput" class="todo-input" placeholder="Add a to-do item"></textarea>
         <button class="action-btn primary" id="addTodoBtn" type="button">Add</button>
       </div>
       <div class="todo-list" id="todoList"></div>
@@ -1347,14 +1351,25 @@
       });
     }
 
+    function addTodoItemsFromLines(raw) {
+      const parts = String(raw)
+        .split(/\r?\n|\\n/g)
+        .map(s => s.trim())
+        .filter(Boolean);
+      if (!parts.length) return false;
+      parts.forEach(part => todoItems.push({ text: part, done: false }));
+      renderTodoList();
+      saveSettings();
+      return true;
+    }
+
     function addTodoItem() {
       if (!todoInput) return;
       const value = todoInput.value.trim();
       if (!value) return;
-      todoItems.push({ text: value, done: false });
-      todoInput.value = '';
-      renderTodoList();
-      saveSettings();
+      if (addTodoItemsFromLines(value)) {
+        todoInput.value = '';
+      }
     }
 
     function getZoneLongName(date) {
@@ -1629,7 +1644,12 @@
     if (collapseTodoBtn) collapseTodoBtn.addEventListener('click', () => setPanelCollapsed(todoPanel, true, expandTodoBtn));
     if (expandTodoBtn) expandTodoBtn.addEventListener('click', () => setPanelCollapsed(todoPanel, false, expandTodoBtn));
     if (addTodoBtn) addTodoBtn.addEventListener('click', addTodoItem);
-    if (todoInput) todoInput.addEventListener('keydown', (e) => { if (e.key === 'Enter') addTodoItem(); });
+    if (todoInput) todoInput.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter' && !e.shiftKey) {
+        e.preventDefault();
+        addTodoItem();
+      }
+    });
 
     sizeSlider.addEventListener('input', () => {
       sizePercent = Number(sizeSlider.value);
