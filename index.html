@@ -208,6 +208,53 @@
       color: var(--fg);
     }
 
+    /* iOS Style Toggle */
+    .ios-toggle-wrap {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      color: rgba(255,255,255,0.82);
+      font-size: 13px;
+      font-weight: 700;
+    }
+    .ios-toggle {
+      position: relative;
+      display: inline-block;
+      width: 40px;
+      height: 22px;
+    }
+    .ios-toggle input {
+      opacity: 0;
+      width: 0;
+      height: 0;
+    }
+    .ios-slider {
+      position: absolute;
+      cursor: pointer;
+      top: 0; left: 0; right: 0; bottom: 0;
+      background-color: rgba(255,255,255,0.12);
+      transition: .24s cubic-bezier(0.4, 0, 0.2, 1);
+      border-radius: 22px;
+    }
+    .ios-slider:before {
+      position: absolute;
+      content: "";
+      height: 18px;
+      width: 18px;
+      left: 2px;
+      bottom: 2px;
+      background-color: white;
+      transition: .24s cubic-bezier(0.4, 0, 0.2, 1);
+      border-radius: 50%;
+      box-shadow: 0 2px 4px rgba(0,0,0,0.15);
+    }
+    .ios-toggle input:checked + .ios-slider {
+      background-color: #34c759;
+    }
+    .ios-toggle input:checked + .ios-slider:before {
+      transform: translateX(18px);
+    }
+
     .clock-font-select {
       padding: 8px 10px;
       border-radius: 12px;
@@ -1359,6 +1406,14 @@
         <input type="file" id="bgInput" accept="image/*" style="display:none;" />
       </div>
       <div class="divider"></div>
+      <div class="ios-toggle-wrap">
+        <label for="lunarToggle">Lunar date</label>
+        <label class="ios-toggle">
+          <input type="checkbox" id="lunarToggle" checked />
+          <span class="ios-slider"></span>
+        </label>
+      </div>
+      <div class="divider"></div>
       <button id="btnFullscreen" type="button">Fullscreen</button>
       </div>
     </div>
@@ -1529,6 +1584,7 @@
     const alarmSoundSelect = document.getElementById('alarmSoundSelect');
     const themeSelect = document.getElementById('themeSelect');
     const bgInput = document.getElementById('bgInput');
+    const lunarToggle = document.getElementById('lunarToggle');
 
     const wcNycEl = document.getElementById('wc-nyc');
     const wcLonEl = document.getElementById('wc-lon');
@@ -1582,6 +1638,7 @@
     let ytIsPlaylist = false;
     let ytIsSeeking = false;
     let ytVolumeLevel = 100;
+    let showLunarDate = true;
     let ytHistory = [];      // [{videoId, title, author}]
     let ytHistoryIndex = -1;
     let ytNavigating = false; // true when prev/next is in progress
@@ -1873,7 +1930,8 @@
         todoHeight: todoPanel ? todoPanel.style.height : '',
         todoItems,
         ytUrl: ytState.url,
-        ytVolume: ytVolumeLevel
+        ytVolume: ytVolumeLevel,
+        showLunarDate
       };
 
       try {
@@ -2486,7 +2544,16 @@
       });
 
       dateEl.textContent = dateFmt.format(now);
-      if (lunarDateEl) lunarDateEl.textContent = lunarFmt.format(now);
+      
+      if (lunarDateEl) {
+        if (showLunarDate) {
+          lunarDateEl.textContent = lunarFmt.format(now);
+          lunarDateEl.style.display = 'block';
+        } else {
+          lunarDateEl.style.display = 'none';
+        }
+      }
+      
       tzEl.textContent = `${getZoneShortName(now)} · ${getZoneLongName(now).toUpperCase()}`;
       
       const wcOpts = { hour: 'numeric', minute: '2-digit', hour12: !use24Hour };
@@ -2594,6 +2661,12 @@
       applyClockStyle(clockStyleSelect.value);
     });
 
+    lunarToggle.addEventListener('change', () => {
+      showLunarDate = lunarToggle.checked;
+      updateClock();
+      saveSettings();
+    });
+
     alarmSoundSelect.addEventListener('change', () => {
       saveSettings();
       // Play a demo burst to preview sound
@@ -2693,6 +2766,10 @@
     if (Array.isArray(savedSettings.todoItems)) {
       todoItems = savedSettings.todoItems.filter(item => item && typeof item.text === 'string').map(item => ({ text: item.text, done: !!item.done }));
     }
+    if (typeof savedSettings.showLunarDate === 'boolean') {
+      showLunarDate = savedSettings.showLunarDate;
+    }
+    lunarToggle.checked = showLunarDate;
 
     applyPanelOpacity();
     applyClockStyle(savedSettings.clockStyle || 'default');
