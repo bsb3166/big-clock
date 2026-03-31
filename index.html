@@ -412,14 +412,13 @@
       text-transform: uppercase;
       text-shadow: 0 0 0.05em rgba(242,247,255,0.45);
     }
-    }
 
     .bottom-left-info {
       position: absolute;
       bottom: 26px;
       left: 32px;
       text-align: left;
-      z-index: 1;
+      z-index: 10;
       display: flex;
       flex-direction: column;
       gap: 4px;
@@ -427,7 +426,7 @@
     }
 
     .date {
-      font-size: clamp(32px, 3.8vw, 64px);
+      font-size: clamp(20px, 2.5vw, 42px);
       font-weight: 800;
       letter-spacing: -0.03em;
       color: var(--muted);
@@ -437,7 +436,7 @@
 
     .tz {
       margin: 0;
-      font-size: clamp(14px, 1.5vw, 22px);
+      font-size: clamp(12px, 1.2vw, 18px);
       color: var(--muted2);
       font-weight: 800;
       letter-spacing: 0.04em;
