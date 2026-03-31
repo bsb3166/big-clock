@@ -1582,6 +1582,38 @@
     let ytIsPlaylist = false;
     let ytIsSeeking = false;
     let ytVolumeLevel = 100;
+    let ytHistory = [];      // [{videoId, title, author}]
+    let ytHistoryIndex = -1;
+    let ytNavigating = false; // true when prev/next is in progress
+    let ytSeedVideoId = null; // the original video that started the session
+
+    function ytHistoryPush(videoId, title, author) {
+      if (!videoId) return;
+      // If navigating via prev/next, don't push
+      if (ytNavigating) { ytNavigating = false; return; }
+      // Don't duplicate if same as current
+      if (ytHistoryIndex >= 0 && ytHistory[ytHistoryIndex] && ytHistory[ytHistoryIndex].videoId === videoId) return;
+      // Trim forward history when a new video plays organically
+      ytHistory = ytHistory.slice(0, ytHistoryIndex + 1);
+      ytHistory.push({ videoId, title: title || '', author: author || '' });
+      ytHistoryIndex = ytHistory.length - 1;
+    }
+
+    function ytHistoryGo(index) {
+      if (index < 0 || index >= ytHistory.length) return;
+      ytNavigating = true;
+      ytHistoryIndex = index;
+      const entry = ytHistory[index];
+      if (ytPlayer && ytPlayer.loadVideoById) {
+        ytPlayer.loadVideoById(entry.videoId);
+      }
+      // Update UI immediately
+      document.getElementById('ytTitle').textContent = entry.title || 'Loading...';
+      document.getElementById('ytAuthor').textContent = entry.author || '';
+      const thumb = document.getElementById('ytThumb');
+      thumb.src = `https://i.ytimg.com/vi/${entry.videoId}/default.jpg`;
+      thumb.style.display = 'block';
+    }
 
     function formatYtTime(secs) {
       if (!secs || isNaN(secs)) return '0:00';
@@ -1633,7 +1665,7 @@
       ytPlayer = new YT.Player('ytPlayerHost', {
         height: '160',
         width: '240',
-        playerVars: { 'autoplay': 0, 'controls': 0, 'enablejsapi': 1 },
+        playerVars: { 'autoplay': 1, 'controls': 0, 'enablejsapi': 1, 'rel': 1 },
         events: {
           'onReady': onPlayerReady,
           'onStateChange': onPlayerStateChange,
@@ -1666,11 +1698,39 @@
       });
       
       document.getElementById('ytPrevBtn').addEventListener('click', () => {
-        if (ytPlayer && ytIsPlaylist && ytPlayer.previousVideo) ytPlayer.previousVideo();
+        if (!ytPlayer) return;
+        // If more than 3s in, restart current track
+        if (ytPlayer.getCurrentTime && ytPlayer.getCurrentTime() > 3) {
+          ytPlayer.seekTo(0, true);
+          return;
+        }
+        // In a playlist/Radio Mix: use native previous
+        if (ytIsPlaylist && ytPlayer.previousVideo) {
+          ytPlayer.previousVideo();
+        } else if (ytHistoryIndex > 0) {
+          ytHistoryGo(ytHistoryIndex - 1);
+        } else if (ytPlayer.seekTo) {
+          ytPlayer.seekTo(0, true);
+        }
       });
       
       document.getElementById('ytNextBtn').addEventListener('click', () => {
-        if (ytPlayer && ytIsPlaylist && ytPlayer.nextVideo) ytPlayer.nextVideo();
+        if (!ytPlayer) return;
+        // In a playlist/Radio Mix: always use native next
+        if (ytIsPlaylist && ytPlayer.nextVideo) {
+          ytPlayer.nextVideo();
+        } else if (ytHistoryIndex < ytHistory.length - 1) {
+          // Forward history exists (single video mode)
+          ytHistoryGo(ytHistoryIndex + 1);
+        } else if (ytSeedVideoId) {
+          // Single video: load YouTube's auto-generated Radio Mix playlist
+          ytIsPlaylist = true;
+          ytPlayer.loadPlaylist({
+            list: 'RD' + ytSeedVideoId,
+            listType: 'playlist',
+            index: 1
+          });
+        }
       });
 
       document.getElementById('ytUrlInput').addEventListener('keydown', (e) => {
@@ -1739,6 +1799,10 @@
             const thumb = document.getElementById('ytThumb');
             thumb.src = `https://i.ytimg.com/vi/${data.video_id}/default.jpg`;
             thumb.style.display = 'block';
+            // Track in history (auto-played related videos get added here)
+            if (event.data === PlayState.PLAYING) {
+              ytHistoryPush(data.video_id, data.title, data.author);
+            }
           }
         }
       }
@@ -1766,6 +1830,11 @@
       
       ytState.url = rawUrl;
       ytIsPlaylist = !!parsed.listId;
+      ytSeedVideoId = parsed.videoId || null;
+      // Clear history when manually loading a new URL
+      ytHistory = [];
+      ytHistoryIndex = -1;
+      ytNavigating = false;
       saveSettings();
       
       if (!ytState.ready || !ytPlayer) return;
