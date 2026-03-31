@@ -689,6 +689,11 @@
       margin-left: 10px;
       border-left: 1px solid rgba(255,255,255,0.1);
       padding-left: 14px;
+      cursor: pointer;
+      transition: opacity 0.2s;
+    }
+    .yt-media-info:hover {
+      opacity: 0.8;
     }
 
     .yt-thumb {
@@ -1505,7 +1510,7 @@
           </div>
           <div class="yt-time-display total" id="ytDurationDisplay">0:00</div>
 
-          <div class="yt-media-info">
+          <div class="yt-media-info" id="ytMediaInfo" title="Open on YouTube">
             <img src="" id="ytThumb" class="yt-thumb" style="display:none;" />
             <div class="yt-text-wrap">
               <div class="yt-video-title" id="ytTitle">Loading...</div>
@@ -1692,7 +1697,7 @@
     let draggedItemIndex = null;
     const ALARM_DURATION_MS = 20000;
 
-    let ytState = { url: '', ready: false, playing: false };
+    let ytState = { url: '', videoId: '', ready: false, playing: false };
     let ytPlayer = null;
     let ytIsPlaylist = false;
     let ytIsSeeking = false;
@@ -1799,6 +1804,12 @@
       document.getElementById('ytLoadBtn').addEventListener('click', () => {
         const url = document.getElementById('ytUrlInput').value.trim();
         if (url) loadYouTubeUrl(url, true);
+      });
+
+      document.getElementById('ytMediaInfo').addEventListener('click', () => {
+        if (ytState.videoId) {
+          window.open(`https://www.youtube.com/watch?v=${ytState.videoId}`, '_blank');
+        }
       });
       
       document.getElementById('ytChangeBtn').addEventListener('click', () => {
@@ -1916,6 +1927,7 @@
             document.getElementById('ytAuthor').textContent = data.author;
           }
           if (data && data.video_id) {
+            ytState.videoId = data.video_id;
             const thumb = document.getElementById('ytThumb');
             thumb.src = `https://i.ytimg.com/vi/${data.video_id}/default.jpg`;
             thumb.style.display = 'block';
@@ -1949,6 +1961,7 @@
       }
       
       ytState.url = rawUrl;
+      ytState.videoId = parsed.videoId || '';
       ytIsPlaylist = !!parsed.listId;
       ytSeedVideoId = parsed.videoId || null;
       // Clear history when manually loading a new URL
