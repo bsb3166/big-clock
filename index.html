@@ -431,6 +431,45 @@
       text-transform: uppercase;
     }
 
+    .world-clocks {
+      margin-top: 24px;
+      display: flex;
+      gap: 20px;
+      align-items: center;
+      justify-content: center;
+      flex-wrap: wrap;
+    }
+
+    .world-clock {
+      background: rgba(255, 255, 255, 0.04);
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      border-radius: 12px;
+      padding: 10px 16px;
+      text-align: center;
+      backdrop-filter: blur(8px);
+      min-width: 110px;
+    }
+
+    .world-clock .wc-name {
+      font-size: 11px;
+      font-weight: 800;
+      color: var(--muted2);
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+      margin-bottom: 4px;
+    }
+
+    .world-clock .wc-time {
+      font-size: 18px;
+      font-weight: 700;
+      color: var(--muted);
+      font-variant-numeric: tabular-nums;
+    }
+
+    body.theme-midnight { background: radial-gradient(circle at center, #0B1021 0%, #03040B 72%); }
+    body.theme-forest { background: radial-gradient(circle at center, #0B1C14 0%, #020604 72%); }
+    body.theme-custom { background-size: cover; background-position: center; }
+
     .floating-panel {
       position: absolute;
       top: 74px;
@@ -976,6 +1015,26 @@
         </select>
       </div>
       <div class="divider"></div>
+      <div class="slider-wrap">
+        <label for="alarmSoundSelect">Alarm</label>
+        <select id="alarmSoundSelect" class="clock-font-select" style="min-width: 110px;">
+          <option value="default">Default</option>
+          <option value="beep">Digital Beep</option>
+          <option value="marimba">Marimba</option>
+        </select>
+      </div>
+      <div class="divider"></div>
+      <div class="slider-wrap">
+        <label for="themeSelect">Theme</label>
+        <select id="themeSelect" class="clock-font-select" style="min-width: 140px;">
+          <option value="dark">Dark (Default)</option>
+          <option value="midnight">Midnight Blue</option>
+          <option value="forest">Deep Forest</option>
+          <option value="custom">Custom Image...</option>
+        </select>
+        <input type="file" id="bgInput" accept="image/*" style="display:none;" />
+      </div>
+      <div class="divider"></div>
       <button id="btnFullscreen" type="button">Fullscreen</button>
     </div>
 
@@ -990,6 +1049,11 @@
         </div>
         <div class="date" id="date">Sunday, March 29, 2026</div>
         <div class="tz" id="tz">PDT · PACIFIC DAYLIGHT TIME</div>
+        <div class="world-clocks" id="worldClocks">
+          <div class="world-clock"><div class="wc-name">New York</div><div class="wc-time" id="wc-nyc">00:00 AM</div></div>
+          <div class="world-clock"><div class="wc-name">London</div><div class="wc-time" id="wc-lon">00:00 AM</div></div>
+          <div class="world-clock"><div class="wc-name">Beijing</div><div class="wc-time" id="wc-bjs">00:00 AM</div></div>
+        </div>
       </div>
     </div>
 
@@ -1091,6 +1155,13 @@
     const panelOpacitySlider = document.getElementById('panelOpacitySlider');
     const panelOpacityValue = document.getElementById('panelOpacityValue');
     const clockStyleSelect = document.getElementById('clockStyleSelect');
+    const alarmSoundSelect = document.getElementById('alarmSoundSelect');
+    const themeSelect = document.getElementById('themeSelect');
+    const bgInput = document.getElementById('bgInput');
+
+    const wcNycEl = document.getElementById('wc-nyc');
+    const wcLonEl = document.getElementById('wc-lon');
+    const wcBjsEl = document.getElementById('wc-bjs');
 
     const quickPanel = document.getElementById('quickPanel');
     const customPanel = document.getElementById('customPanel');
@@ -1149,6 +1220,9 @@
         sizePercent,
         panelOpacityPercent,
         clockStyle: clockStyleSelect.value,
+        alarmSound: alarmSoundSelect.value,
+        theme: themeSelect.value,
+        customBg: localStorage.getItem('big-clock-custom-bg') || '',
         quickCollapsed: quickPanel.classList.contains('collapsed'),
         customCollapsed: customPanel.classList.contains('collapsed'),
         todoCollapsed: todoPanel ? todoPanel.classList.contains('collapsed') : false,
@@ -1221,6 +1295,21 @@
       clockStyleSelect.value = styleKey in styleMap ? styleKey : 'default';
       saveSettings();
       applyTimeScale();
+    }
+
+    function applyTheme(themeKey) {
+      document.body.classList.remove('theme-midnight', 'theme-forest', 'theme-custom');
+      document.body.style.backgroundImage = '';
+      if (themeKey === 'midnight' || themeKey === 'forest' || themeKey === 'custom') {
+        document.body.classList.add(`theme-${themeKey}`);
+      }
+      if (themeKey === 'custom') {
+        const bgData = localStorage.getItem('big-clock-custom-bg');
+        if (bgData) {
+          document.body.style.backgroundImage = `url(${bgData})`;
+        }
+      }
+      themeSelect.value = themeKey;
     }
 
     function renderSegmentDigit(char) {
@@ -1522,34 +1611,71 @@
       if (!ctx) return;
 
       const now = ctx.currentTime;
+      const soundType = alarmSoundSelect.value;
       const osc = ctx.createOscillator();
       const gain = ctx.createGain();
-      const osc2 = ctx.createOscillator();
-      const gain2 = ctx.createGain();
 
-      osc.type = 'triangle';
-      osc.frequency.setValueAtTime(880, now);
-      osc.frequency.exponentialRampToValueAtTime(660, now + 0.35);
+      if (soundType === 'beep') {
+        osc.type = 'square';
+        osc.frequency.setValueAtTime(1200, now);
+        osc.frequency.setValueAtTime(1800, now + 0.1);
+        gain.gain.setValueAtTime(0, now);
+        gain.gain.linearRampToValueAtTime(0.1, now + 0.02);
+        gain.gain.setValueAtTime(0.1, now + 0.1);
+        gain.gain.linearRampToValueAtTime(0, now + 0.15);
+        
+        osc.connect(gain).connect(ctx.destination);
+        osc.start(now);
+        osc.stop(now + 0.16);
+      } else if (soundType === 'marimba') {
+        osc.type = 'sine';
+        osc.frequency.setValueAtTime(523.25, now); // C5
+        osc.frequency.exponentialRampToValueAtTime(500, now + 0.4);
+        gain.gain.setValueAtTime(0, now);
+        gain.gain.linearRampToValueAtTime(0.3, now + 0.02);
+        gain.gain.exponentialRampToValueAtTime(0.001, now + 0.4);
+        
+        const osc2 = ctx.createOscillator();
+        const gain2 = ctx.createGain();
+        osc2.type = 'sine';
+        osc2.frequency.setValueAtTime(659.25, now + 0.1); // E5
+        gain2.gain.setValueAtTime(0, now + 0.1);
+        gain2.gain.linearRampToValueAtTime(0.2, now + 0.12);
+        gain2.gain.exponentialRampToValueAtTime(0.001, now + 0.5);
+        
+        osc.connect(gain).connect(ctx.destination);
+        osc2.connect(gain2).connect(ctx.destination);
+        osc.start(now);
+        osc.stop(now + 0.45);
+        osc2.start(now + 0.1);
+        osc2.stop(now + 0.55);
+      } else {
+        const osc2 = ctx.createOscillator();
+        const gain2 = ctx.createGain();
+        osc.type = 'triangle';
+        osc.frequency.setValueAtTime(880, now);
+        osc.frequency.exponentialRampToValueAtTime(660, now + 0.35);
 
-      osc2.type = 'sine';
-      osc2.frequency.setValueAtTime(1320, now);
-      osc2.frequency.exponentialRampToValueAtTime(990, now + 0.35);
+        osc2.type = 'sine';
+        osc2.frequency.setValueAtTime(1320, now);
+        osc2.frequency.exponentialRampToValueAtTime(990, now + 0.35);
 
-      gain.gain.setValueAtTime(0.0001, now);
-      gain.gain.exponentialRampToValueAtTime(0.08, now + 0.03);
-      gain.gain.exponentialRampToValueAtTime(0.0001, now + 0.45);
+        gain.gain.setValueAtTime(0.0001, now);
+        gain.gain.exponentialRampToValueAtTime(0.08, now + 0.03);
+        gain.gain.exponentialRampToValueAtTime(0.0001, now + 0.45);
 
-      gain2.gain.setValueAtTime(0.0001, now);
-      gain2.gain.exponentialRampToValueAtTime(0.04, now + 0.03);
-      gain2.gain.exponentialRampToValueAtTime(0.0001, now + 0.45);
+        gain2.gain.setValueAtTime(0.0001, now);
+        gain2.gain.exponentialRampToValueAtTime(0.04, now + 0.03);
+        gain2.gain.exponentialRampToValueAtTime(0.0001, now + 0.45);
 
-      osc.connect(gain).connect(ctx.destination);
-      osc2.connect(gain2).connect(ctx.destination);
+        osc.connect(gain).connect(ctx.destination);
+        osc2.connect(gain2).connect(ctx.destination);
 
-      osc.start(now);
-      osc2.start(now);
-      osc.stop(now + 0.48);
-      osc2.stop(now + 0.48);
+        osc.start(now);
+        osc2.start(now);
+        osc.stop(now + 0.48);
+        osc2.stop(now + 0.48);
+      }
     }
 
     function triggerAlarm() {
@@ -1641,6 +1767,12 @@
 
       dateEl.textContent = dateFmt.format(now);
       tzEl.textContent = `${getZoneShortName(now)} · ${getZoneLongName(now).toUpperCase()}`;
+      
+      const wcOpts = { hour: 'numeric', minute: '2-digit', hour12: !use24Hour };
+      wcNycEl.textContent = new Intl.DateTimeFormat(undefined, { ...wcOpts, timeZone: 'America/New_York' }).format(now);
+      wcLonEl.textContent = new Intl.DateTimeFormat(undefined, { ...wcOpts, timeZone: 'Europe/London' }).format(now);
+      wcBjsEl.textContent = new Intl.DateTimeFormat(undefined, { ...wcOpts, timeZone: 'Asia/Shanghai' }).format(now);
+
       applyTimeScale();
       updateTimerUI();
     }
@@ -1741,6 +1873,46 @@
       applyClockStyle(clockStyleSelect.value);
     });
 
+    alarmSoundSelect.addEventListener('change', () => {
+      saveSettings();
+      // Play a demo burst to preview sound
+      playAlarmBurst();
+    });
+
+    themeSelect.addEventListener('change', () => {
+      if (themeSelect.value === 'custom') {
+        const bgData = localStorage.getItem('big-clock-custom-bg');
+        if (!bgData) {
+          bgInput.click();
+          // We don't save theme just yet until they upload a file
+          return;
+        }
+      }
+      applyTheme(themeSelect.value);
+      saveSettings();
+    });
+
+    bgInput.addEventListener('change', (e) => {
+      const file = e.target.files[0];
+      if (!file) {
+        // If they cancelled the dialog and there's no custom bg, revert select to dark
+        if (!localStorage.getItem('big-clock-custom-bg')) {
+          themeSelect.value = 'dark';
+          applyTheme('dark');
+          saveSettings();
+        }
+        return;
+      }
+      const reader = new FileReader();
+      reader.onload = (ev) => {
+        localStorage.setItem('big-clock-custom-bg', ev.target.result);
+        themeSelect.value = 'custom';
+        applyTheme('custom');
+        saveSettings();
+      };
+      reader.readAsDataURL(file);
+    });
+
     presetButtons.forEach(btn => {
       btn.addEventListener('click', () => {
         clearPresetSelection();
@@ -1803,6 +1975,13 @@
 
     applyPanelOpacity();
     applyClockStyle(savedSettings.clockStyle || 'default');
+    
+    if (savedSettings.alarmSound) {
+      alarmSoundSelect.value = savedSettings.alarmSound;
+    }
+    
+    applyTheme(savedSettings.theme || 'dark');
+    
     setMode(use24Hour);
     setPanelCollapsed(quickPanel, !!savedSettings.quickCollapsed, expandQuickBtn);
     setPanelCollapsed(customPanel, !!savedSettings.customCollapsed, expandCustomBtn);
