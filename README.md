@@ -15,7 +15,14 @@ A fullscreen web clock with large display styles, floating timers, world clocks,
 - **Expanded World Clocks**: Live pinned clocks for New York, London, Beijing, **Tokyo (JST)**, **Paris (CET)**, and **Denver (MST/MDT)**.
     - Includes timezone abbreviations for each city.
 - **Multiple Clock Styles**: Default, LED Neon Green/Blue/Orange, Mixed Neon, 7-Segment, Flip Clock, and Retro Tech.
-- **Customizable Themes**: Dark, Midnight Blue, Deep Forest, or even upload your own **Custom Image Background**.
+- **Premium Built-in Themes**: 
+    - **Dark (Default)**: Classic minimalist deep black.
+    - **Midnight Blue / Deep Forest**: Elegant dark gradients.
+    - **Frosted Glass**: Sophisticated blurred acrylic look.
+    - **Modern Tiles**: Architectural charcoal tile pattern.
+    - **Natural Rock**: Tactile dark slate stone texture.
+    - **Elegant Marble**: High-end white marble (features **Smart Light-Mode** which automatically inverts text for readability).
+    - **Custom Image Background**: Upload your own image via the sub-menu.
 - **Adjustable Display**: Scale the main clock size, or adjust UI panel opacity.
 - **Interactive To-Do List**: Built-in floating to-do list featuring native **HTML5 Drag & Drop sorting** and one-click removal.
 - **Floating Timers**: Persistent quick timer presets, plus a custom hours/minutes timer.
