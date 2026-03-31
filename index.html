@@ -938,13 +938,40 @@
 
     .todo-item {
       display: grid;
-      grid-template-columns: 20px 1fr 24px;
+      grid-template-columns: 14px 20px 1fr 24px;
       gap: 10px;
       align-items: center;
       padding: 8px 10px;
       border-radius: 12px;
       background: rgba(255,255,255,0.03);
       border: 1px solid rgba(255,255,255,0.05);
+      transition: background 0.2s, opacity 0.2s, box-shadow 0.2s;
+    }
+
+    .todo-drag-handle {
+      cursor: grab;
+      color: rgba(255,255,255,0.22);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      user-select: none;
+    }
+
+    .todo-drag-handle:active {
+      cursor: grabbing;
+    }
+
+    .todo-item.dragging {
+      opacity: 0.4;
+      background: rgba(255,255,255,0.08);
+    }
+
+    .todo-item.drag-over-top {
+      border-top: 2px solid rgba(255,255,255,0.4);
+    }
+
+    .todo-item.drag-over-bottom {
+      border-bottom: 2px solid rgba(255,255,255,0.4);
     }
 
     .todo-check {
@@ -1289,6 +1316,7 @@
     let alarmStopTimeout = null;
     let alarmActive = false;
     let todoItems = [];
+    let draggedItemIndex = null;
     const ALARM_DURATION_MS = 20000;
 
     function loadSettings() {
@@ -1523,7 +1551,10 @@
       todoItems.forEach((item, index) => {
         const row = document.createElement('div');
         row.className = `todo-item ${item.done ? 'done' : ''}`;
+        row.draggable = true;
+        row.dataset.index = index;
         row.innerHTML = `
+          <div class="todo-drag-handle" title="Drag to reorder"><svg width="12" height="18" viewBox="0 0 12 18" fill="currentColor"><circle cx="4" cy="3" r="1.5"/><circle cx="8" cy="3" r="1.5"/><circle cx="4" cy="9" r="1.5"/><circle cx="8" cy="9" r="1.5"/><circle cx="4" cy="15" r="1.5"/><circle cx="8" cy="15" r="1.5"/></svg></div>
           <input class="todo-check" type="checkbox" ${item.done ? 'checked' : ''} />
           <input class="todo-text" type="text" value=${JSON.stringify('')} />
           <button class="mini-toggle todo-delete" type="button">×</button>
@@ -1554,6 +1585,59 @@
           todoItems.splice(index, 1);
           renderTodoList();
           saveSettings();
+        });
+
+        row.addEventListener('dragstart', (e) => {
+          draggedItemIndex = index;
+          e.dataTransfer.effectAllowed = 'move';
+          e.dataTransfer.setData('text/plain', index);
+          setTimeout(() => row.classList.add('dragging'), 0);
+        });
+
+        row.addEventListener('dragover', (e) => {
+          e.preventDefault();
+          e.dataTransfer.dropEffect = 'move';
+          if (draggedItemIndex === index) return;
+          const rect = row.getBoundingClientRect();
+          const midY = rect.top + rect.height / 2;
+          row.classList.remove('drag-over-top', 'drag-over-bottom');
+          if (e.clientY < midY) {
+            row.classList.add('drag-over-top');
+          } else {
+            row.classList.add('drag-over-bottom');
+          }
+        });
+
+        row.addEventListener('dragleave', () => {
+          row.classList.remove('drag-over-top', 'drag-over-bottom');
+        });
+
+        row.addEventListener('drop', (e) => {
+          e.preventDefault();
+          row.classList.remove('drag-over-top', 'drag-over-bottom');
+          const sourceIdx = parseInt(e.dataTransfer.getData('text/plain'), 10);
+          if (isNaN(sourceIdx) || sourceIdx === index) return;
+          
+          const rect = row.getBoundingClientRect();
+          const midY = rect.top + rect.height / 2;
+          let targetIdx = index;
+          if (e.clientY >= midY) {
+            targetIdx++;
+          }
+
+          const [movedItem] = todoItems.splice(sourceIdx, 1);
+          if (sourceIdx < targetIdx) {
+            targetIdx--;
+          }
+          todoItems.splice(targetIdx, 0, movedItem);
+          
+          renderTodoList();
+          saveSettings();
+        });
+
+        row.addEventListener('dragend', () => {
+          row.classList.remove('dragging');
+          draggedItemIndex = null;
         });
 
         todoListEl.appendChild(row);
