@@ -413,16 +413,17 @@
       text-shadow: 0 0 0.05em rgba(242,247,255,0.45);
     }
 
-    .bottom-left-info {
+    .date-info-container {
       position: absolute;
-      bottom: 26px;
-      left: 32px;
-      text-align: left;
+      left: 50%;
+      transform: translateX(-50%) translateY(-100%);
+      text-align: center;
       z-index: 10;
       display: flex;
       flex-direction: column;
       gap: 4px;
       pointer-events: none;
+      width: 100%;
     }
 
     .date {
@@ -1073,7 +1074,7 @@
       <div class="world-clock"><div class="wc-name">Beijing</div><div class="wc-time" id="wc-bjs">00:00 AM</div></div>
     </div>
 
-    <div class="bottom-left-info">
+    <div class="date-info-container" id="dateInfo">
       <div class="date" id="date">Sunday, March 29, 2026</div>
       <div class="tz" id="tz">PDT · PACIFIC DAYLIGHT TIME</div>
     </div>
@@ -1549,11 +1550,19 @@
       timeEl.style.transform = `scale(${finalScale})`;
       sizeValue.textContent = `${sizePercent}%`;
       
+      const timeRectAfter = timeEl.getBoundingClientRect();
+      
       const wcEl = document.getElementById('worldClocks');
       if (wcEl) {
-        const timeRectAfter = timeEl.getBoundingClientRect();
         // Place world clocks 20px below the visual bottom of the main clock
         wcEl.style.top = `${timeRectAfter.bottom + 20}px`;
+      }
+
+      const dateInfoEl = document.getElementById('dateInfo');
+      if (dateInfoEl) {
+        // Place date info 16px above the visual top of the main clock
+        // Ensure it doesn't overlap the topbar (~80px)
+        dateInfoEl.style.top = `${Math.max(90, timeRectAfter.top - 16)}px`;
       }
       
       saveSettings();
