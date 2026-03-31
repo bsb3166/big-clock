@@ -940,56 +940,11 @@
       pointer-events: none;
       z-index: -1;
     }
-    body.theme-tiles { background: url('file:///C:/Users/cding/.gemini/antigravity/brain/fd8c9a5b-67a4-443a-9c0b-5c09005254d7/texture_tiles_modern_png_1774985063621.png') repeat; background-size: 400px; }
-    body.theme-rock { background: url('file:///C:/Users/cding/.gemini/antigravity/brain/fd8c9a5b-67a4-443a-9c0b-5c09005254d7/texture_rock_slate_png_1774984822032.png') center/cover no-repeat fixed; }
-    body.theme-marble { background: url('file:///C:/Users/cding/.gemini/antigravity/brain/fd8c9a5b-67a4-443a-9c0b-5c09005254d7/texture_marble_premium_png_1774984693380.png') center/cover no-repeat fixed; }
+    body.theme-tiles { background: url('assets/tiles.png') repeat; background-size: 400px; }
+    body.theme-rock { background: url('assets/rock.png') center/cover no-repeat fixed; }
+    body.theme-marble { background: url('assets/marble.png') center/cover no-repeat fixed; }
+    body.theme-star-rain { background: url('assets/star-rain.jpg') center/cover no-repeat fixed; }
     body.theme-custom { background-size: cover; background-position: center; }
-
-    /* Light Mode Overrides for Marble */
-    body.light-mode {
-      --fg: #111;
-      --muted: #333;
-      --muted2: #444;
-      --panel-bg: rgba(255, 255, 255, 0.45);
-      --panel-hover: rgba(0, 0, 0, 0.1);
-      --clock-shadow: none;
-    }
-    body.light-mode .topbar-wrapper { border-bottom-color: rgba(0, 0, 0, 0.08); }
-    body.light-mode .dropdown-menu,
-    body.light-mode .dropdown-submenu {
-      background: rgba(255, 255, 255, 0.92);
-      border-color: rgba(0, 0, 0, 0.16);
-      box-shadow: 0 10px 40px rgba(0,0,0,0.15);
-    }
-    body.light-mode .dropdown-item { color: #111; }
-    body.light-mode .dropdown-item:hover { background: rgba(0, 0, 0, 0.05); }
-    body.light-mode .submenu-label { color: #666; }
-    body.light-mode .dropdown-divider { background: rgba(0, 0, 0, 0.08); }
-    body.light-mode .clock-font-select, 
-    body.light-mode .dropdown-trigger,
-    body.light-mode .topbar button,
-    body.light-mode .yt-btn,
-    body.light-mode .mini-toggle {
-      background: rgba(0, 0, 0, 0.05);
-      border-color: rgba(0, 0, 0, 0.12);
-      color: #111;
-    }
-    body.light-mode .topbar button:hover,
-    body.light-mode .yt-btn:hover { background: rgba(0, 0, 0, 0.12); }
-    body.light-mode .ios-slider { background-color: rgba(0, 0, 0, 0.1); }
-    body.light-mode .ios-slider:before { background-color: #fff; }
-    body.light-mode .divider { background: rgba(0, 0, 0, 0.08); }
-    body.light-mode .yt-music-bar { background: rgba(255, 255, 255, 0.65); border-color: rgba(0, 0, 0, 0.1); }
-    body.light-mode .yt-video-title { color: #111; }
-    body.light-mode .world-clock { background: rgba(0, 0, 0, 0.04); border-color: rgba(0, 0, 0, 0.08); }
-    body.light-mode .wc-time { color: #111; }
-    body.light-mode .wc-tz { color: #666; }
-    body.light-mode .hint { color: #444; background: rgba(255, 255, 255, 0.4); border-color: rgba(0, 0, 0, 0.08); }
-    body.light-mode .floating-panel { background: rgba(255, 255, 255, 0.68); border: 1px solid rgba(0, 0, 0, 0.08); }
-    body.light-mode .panel-title { color: #111; }
-    body.light-mode .todo-item { border-bottom-color: rgba(0, 0, 0, 0.06); }
-    body.light-mode .todo-text { color: #111; }
-    body.light-mode .todo-input { background: rgba(255, 255, 255, 0.5); border-color: rgba(0, 0, 0, 0.1); color: #111; }
 
     .floating-panel {
       position: absolute;
@@ -1586,6 +1541,7 @@
             <div class="dropdown-item" data-value="tiles">Modern Tiles</div>
             <div class="dropdown-item" data-value="rock">Natural Rock</div>
             <div class="dropdown-item" data-value="marble">Elegant Marble</div>
+            <div class="dropdown-item" data-value="star-rain">Star Rain</div>
             <div class="dropdown-divider"></div>
             <div class="dropdown-item has-submenu" id="customSubmenuTrigger">
               Custom Background
@@ -2264,18 +2220,13 @@
     function applyTheme(themeKey) {
       document.body.classList.remove(
         'theme-midnight', 'theme-forest', 'theme-glass', 
-        'theme-tiles', 'theme-rock', 'theme-marble', 'theme-custom',
-        'light-mode'
+        'theme-tiles', 'theme-rock', 'theme-marble', 'theme-star-rain', 'theme-custom'
       );
       document.body.style.backgroundImage = '';
       
-      const themesWithClass = ['midnight', 'forest', 'glass', 'tiles', 'rock', 'marble', 'custom'];
+      const themesWithClass = ['midnight', 'forest', 'glass', 'tiles', 'rock', 'marble', 'star-rain', 'custom'];
       if (themesWithClass.includes(themeKey)) {
         document.body.classList.add(`theme-${themeKey}`);
-      }
-
-      if (themeKey === 'marble') {
-        document.body.classList.add('light-mode');
       }
 
       if (themeKey === 'custom') {
