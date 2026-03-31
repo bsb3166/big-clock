@@ -1421,6 +1421,21 @@
       z-index: 11;
     }
 
+    .github-link-bottom {
+      position: absolute;
+      left: 28px;
+      bottom: 18px;
+      font-size: 12px;
+      color: rgba(255,255,255,0.3);
+      text-decoration: none;
+      z-index: 11;
+      transition: color 0.15s;
+      font-weight: 700;
+    }
+    .github-link-bottom:hover {
+      color: white;
+    }
+
     @media (max-width: 1100px) {
       .quick-panel { width: 212px; }
       .custom-panel { width: 244px; }
@@ -1737,6 +1752,7 @@
     <button class="mini-toggle todo-fab" id="expandTodoBtn" type="button">+</button>
 
     <div class="hint">F = fullscreen · T = 12/24h · Q = quick · W = custom · R = to-do · Esc = stop alarm</div>
+    <a href="https://github.com/bsb3166/big-clock" target="_blank" class="github-link-bottom">GitHub</a>
 
     <div class="alarm-modal-backdrop" id="alarmModalBackdrop">
       <div class="alarm-modal">
