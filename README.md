@@ -5,8 +5,15 @@ A fullscreen web clock with large display styles, floating timers, world clocks,
 ## Features
 
 - **Large Centered Fullscreen Clock**
+- **YouTube Music-Style Player**: 
+    - Floating glassmorphic control bar.
+    - **Radio Mix Integration**: Automatically generates an infinite queue of related music when playing a single video.
+    - **History Navigation**: Intelligent "Previous" button that tracks your played videos.
+    - Persistence for volume and tracks.
 - **Dynamic Date & Timezones**: Automatically positioned date, timezone, and Chinese Lunar Date display.
-- **World Clocks**: Live pinned clocks for New York, London, and Beijing.
+    - **Decoupled Visibility**: Toggle each element (Date, Lunar, TZ) independently.
+- **Expanded World Clocks**: Live pinned clocks for New York, London, Beijing, **Tokyo (JST)**, **Paris (CET)**, and **Denver (MST/MDT)**.
+    - Includes timezone abbreviations for each city.
 - **Multiple Clock Styles**: Default, LED Neon Green/Blue/Orange, Mixed Neon, 7-Segment, Flip Clock, and Retro Tech.
 - **Customizable Themes**: Dark, Midnight Blue, Deep Forest, or even upload your own **Custom Image Background**.
 - **Adjustable Display**: Scale the main clock size, or adjust UI panel opacity.
@@ -14,18 +21,19 @@ A fullscreen web clock with large display styles, floating timers, world clocks,
 - **Floating Timers**: Persistent quick timer presets, plus a custom hours/minutes timer.
 - **Alarm Customizations**: Choose between Default, Digital Beep, or Marimba. Features an auto-firing screen shake effect and an alarm stop modal.
 - **Auto-Hiding Menus**: The settings menu cleanly tucks itself into a capsule icon when your mouse leaves the area.
+- **iOS-Style Toggles**: Premium toggle switches in the settings bar for all major sections (YouTube, Date, Lunar, TZ, World Clock).
 - **Local Persistence**: Remembers literally everything contextually (clock style, theme, custom background, sounds, active to-dos, panel opacities, and collapsed states).
 
 ## Controls / Hotkeys
 
 ### Main Controls
-- `F` — Toggle Fullscreen
-- `T` — Toggle 12/24 Hour Mode
+- `F` — Toggle Fullscreen (Hint: **Fullscreen (F)**)
+- `T` — Toggle 12/24 Hour Mode (Hint: **12/24 hr (T)**)
 
 ### Panel Controls
-- `Q` — Toggle Quick Timers panel
-- `W` — Toggle Custom Timer panel
-- `R` — Toggle To-Do List panel
+- `Q` — Toggle Quick Timers panel (Hint: **Quick timers (Q)**)
+- `W` — Toggle Custom Timer panel (Hint: **Custom timer (W)**)
+- `R` — Toggle To-Do List panel (Hint: **To-do list (R)**)
 
 ### Alarm Controls
 - `Esc` — Stop active alarm (or click the **Stop** button)
@@ -33,6 +41,8 @@ A fullscreen web clock with large display styles, floating timers, world clocks,
 ## Running Locally
 
 Because Big Clock is built purely natively, just open `index.html` in any browser!
+
+**Note for YouTube Player**: Due to security restrictions on the YouTube IFrame API, the player functionality requires the page to be served via a local HTTP server (e.g., `python -m http.server 8888`) and accessed via `http://localhost:8888/`.
 
 For best results:
 - Use Chrome, Edge, or Firefox.
@@ -54,6 +64,7 @@ To deploy it globally:
 
 ## Built With
 - Pure HTML5 / CSS3 / Vanilla JavaScript.
+- YouTube IFrame API.
 - Native HTML5 Drag and Drop API.
 - Native `Intl.DateTimeFormat` for dates, zones, and calendars.
 - Zero dependencies.
