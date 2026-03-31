@@ -1,99 +1,59 @@
 # big-clock
 
-A fullscreen web clock with large display styles, floating timers, alarm effects, and a clean always-on-screen layout.
+A fullscreen web clock with large display styles, floating timers, world clocks, dynamic themes, alarm effects, and a highly interactive layout.
 
 ## Features
 
-- Large centered fullscreen clock
-- 12 / 24 hour mode
-- Adjustable clock size
-- Adjustable timer panel opacity
-- Floating quick timers and custom timer panel
-- Collapsible timer panels
-- Custom timer with minutes + seconds
-- Alarm sound, shake effect, and stop modal when timer finishes
-- Multiple clock styles:
-  - Default
-  - LED neon green
-  - LED neon blue
-  - LED neon orange
-  - 7 segment
-  - Flip clock
-  - Retro tech
-- Remembers settings locally:
-  - clock size
-  - panel opacity
-  - panel collapsed state
-  - 12/24h mode
-  - selected clock style
+- **Large Centered Fullscreen Clock**
+- **Dynamic Date & Timezones**: Automatically positioned date, timezone, and Chinese Lunar Date display.
+- **World Clocks**: Live pinned clocks for New York, London, and Beijing.
+- **Multiple Clock Styles**: Default, LED Neon Green/Blue/Orange, Mixed Neon, 7-Segment, Flip Clock, and Retro Tech.
+- **Customizable Themes**: Dark, Midnight Blue, Deep Forest, or even upload your own **Custom Image Background**.
+- **Adjustable Display**: Scale the main clock size, or adjust UI panel opacity.
+- **Interactive To-Do List**: Built-in floating to-do list featuring native **HTML5 Drag & Drop sorting** and one-click removal.
+- **Floating Timers**: Persistent quick timer presets, plus a custom hours/minutes timer.
+- **Alarm Customizations**: Choose between Default, Digital Beep, or Marimba. Features an auto-firing screen shake effect and an alarm stop modal.
+- **Auto-Hiding Menus**: The settings menu cleanly tucks itself into a capsule icon when your mouse leaves the area.
+- **Local Persistence**: Remembers literally everything contextually (clock style, theme, custom background, sounds, active to-dos, panel opacities, and collapsed states).
 
-## Screenshot
+## Controls / Hotkeys
 
-Add a screenshot to this repo and update this section if you want a visual preview in GitHub.
+### Main Controls
+- `F` — Toggle Fullscreen
+- `T` — Toggle 12/24 Hour Mode
 
-## Run locally
+### Panel Controls
+- `Q` — Toggle Quick Timers panel
+- `W` — Toggle Custom Timer panel
+- `R` — Toggle To-Do List panel
 
-Just open `index.html` in a browser.
+### Alarm Controls
+- `Esc` — Stop active alarm (or click the **Stop** button)
+
+## Running Locally
+
+Because Big Clock is built purely natively, just open `index.html` in any browser!
 
 For best results:
-- use Chrome, Edge, or another modern browser
-- enter fullscreen mode
-- allow sound so timer alarms can play
+- Use Chrome, Edge, or Firefox.
+- Hit `F` to enter fullscreen mode.
+- Allow sound so timer alarms can play through the Web Audio API without interruption.
 
-## Controls
+## GitHub Pages Setup
 
-### Main controls
-- `F` — toggle fullscreen
-- `T` — toggle 12/24 hour mode
+This repo is completely compatible with GitHub Pages.
 
-### Timer panel controls
-- `Q` — toggle quick timers panel
-- `W` — toggle custom timer panel
-
-### Alarm controls
-- `Esc` — stop active alarm
-- Or click the **Stop** button in the alarm modal
-
-## Timer features
-
-### Quick timers
-Includes preset buttons for:
-- 1 min
-- 5 min
-- 15 min
-- 30 min
-- 1 hr
-- 2 hr
-- 3 hr
-
-### Custom timer
-Set:
-- minutes
-- seconds
-
-Then start, pause, resume, or clear the timer.
-
-## GitHub Pages
-
-This repo is compatible with GitHub Pages because the app is a static `index.html` file.
-
-To enable GitHub Pages:
-1. Open the repo on GitHub
-2. Go to **Settings** → **Pages**
+To deploy it globally:
+1. Open your repo on GitHub.
+2. Go to **Settings** → **Pages**.
 3. Under **Build and deployment**:
    - **Source**: `Deploy from a branch`
    - **Branch**: `main`
    - **Folder**: `/ (root)`
-4. Save
+4. Save. GitHub will publish it to `https://<your-username>.github.io/big-clock/`.
 
-After that, GitHub will publish the app at a URL like:
-
-`https://bsb3166.github.io/big-clock/`
-
-## Files
-
-- `index.html` — the full app
-
-## Notes
-
-This project is intentionally lightweight and dependency-free at runtime except for web fonts loaded in the page.
+## Built With
+- Pure HTML5 / CSS3 / Vanilla JavaScript.
+- Native HTML5 Drag and Drop API.
+- Native `Intl.DateTimeFormat` for dates, zones, and calendars.
+- Zero dependencies.
