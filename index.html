@@ -2360,7 +2360,7 @@
       const hourChars = hoursText.padStart(2, ' ').split('');
       const minuteChars = minutesText.padStart(2, '0').split('');
       timeEl.classList.add('segment-style');
-      timeEl.classList.remove('flip-style', 'led-style', 'led-green-style', 'led-blue-style', 'led-orange-style');
+      timeEl.classList.remove('flip-style', 'led-style', 'led-green-style', 'led-blue-style', 'led-orange-style', 'analog-style');
       timeEl.innerHTML = `
         ${renderSegmentDigit(hourChars[0])}
         ${renderSegmentDigit(hourChars[1])}
@@ -2404,7 +2404,7 @@
     }
 
     function renderStandardClock(hoursText, minutesText, ampmText) {
-      timeEl.classList.remove('flip-style', 'led-style', 'led-green-style', 'led-blue-style', 'led-orange-style', 'led-mixed-style', 'segment-style');
+      timeEl.classList.remove('flip-style', 'led-style', 'led-green-style', 'led-blue-style', 'led-orange-style', 'led-mixed-style', 'segment-style', 'analog-style');
       if (clockStyleSelect.value === 'led-green') {
         timeEl.classList.add('led-style', 'led-green-style');
       }
@@ -2440,7 +2440,7 @@
       const minuteChars = minutesText.padStart(2, '0').split('');
       const hourPair = `${hourChars[0] === ' ' ? '&nbsp;' : hourChars[0]}${hourChars[1]}`;
       timeEl.classList.add('flip-style');
-      timeEl.classList.remove('led-style', 'led-green-style', 'led-blue-style', 'led-orange-style', 'segment-style');
+      timeEl.classList.remove('led-style', 'led-green-style', 'led-blue-style', 'led-orange-style', 'segment-style', 'analog-style');
       timeEl.innerHTML = `
         <span class="flip-card"><span style="position:absolute;top:0.12em;left:0.16em;font-size:0.18em;letter-spacing:0.08em;opacity:0.72;">${use24Hour ? '' : ampmText}</span>${hourPair}</span>
         <span class="flip-colon colon" id="colon">:</span>
