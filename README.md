@@ -2,6 +2,8 @@
 
 A fullscreen web clock with large display styles, floating timers, world clocks, dynamic themes, alarm effects, and a highly interactive layout.
 
+![Big Clock Screenshot](assets/app-screenshot.png)
+
 ## Features
 
 - **Large Centered Fullscreen Clock**
