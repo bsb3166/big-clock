@@ -435,6 +435,15 @@
       line-height: 1;
     }
 
+    .lunar-date {
+      font-size: clamp(14px, 1.5vw, 24px);
+      font-weight: 700;
+      letter-spacing: 0.05em;
+      color: var(--muted2);
+      margin: 0;
+      line-height: 1;
+    }
+
     .tz {
       margin: 0;
       font-size: clamp(12px, 1.2vw, 18px);
@@ -1076,6 +1085,7 @@
 
     <div class="date-info-container" id="dateInfo">
       <div class="date" id="date">Sunday, March 29, 2026</div>
+      <div class="lunar-date" id="lunarDate">丙午年二月十二</div>
       <div class="tz" id="tz">PDT · PACIFIC DAYLIGHT TIME</div>
     </div>
 
@@ -1164,6 +1174,7 @@
     const timeEl = document.getElementById('time');
     const timeStageEl = document.getElementById('timeStage');
     const dateEl = document.getElementById('date');
+    const lunarDateEl = document.getElementById('lunarDate');
     const tzEl = document.getElementById('tz');
     const alarmBannerEl = document.getElementById('alarmBanner');
     const alarmModalBackdropEl = document.getElementById('alarmModalBackdrop');
@@ -1802,8 +1813,12 @@
       const dateFmt = new Intl.DateTimeFormat(undefined, {
         weekday: 'long', month: 'long', day: 'numeric', year: 'numeric'
       });
+      const lunarFmt = new Intl.DateTimeFormat('zh-CN-u-ca-chinese', {
+        dateStyle: 'long'
+      });
 
       dateEl.textContent = dateFmt.format(now);
+      if (lunarDateEl) lunarDateEl.textContent = lunarFmt.format(now);
       tzEl.textContent = `${getZoneShortName(now)} · ${getZoneLongName(now).toUpperCase()}`;
       
       const wcOpts = { hour: 'numeric', minute: '2-digit', hour12: !use24Hour };
