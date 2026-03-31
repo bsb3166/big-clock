@@ -85,18 +85,67 @@
       box-shadow: 0 10px 30px rgba(0,0,0,0.22);
     }
 
-    .topbar {
+    .topbar-wrapper {
       position: absolute;
       top: 22px;
       left: 50%;
       transform: translateX(-50%);
+      z-index: 20;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+    }
+
+    .topbar-icon {
+      background: var(--panel);
+      border: 1px solid var(--panel-border);
+      border-radius: 22px;
+      padding: 10px 20px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.22);
+      transition: all 0.25s ease;
+      font-size: 14px;
+      font-weight: 700;
+      color: rgba(255,255,255,0.88);
+      position: relative;
+      z-index: 11;
+      backdrop-filter: blur(10px);
+    }
+
+    .topbar-wrapper:hover .topbar-icon,
+    .topbar-wrapper:focus-within .topbar-icon {
+      opacity: 0;
+      transform: translateY(-10px) scale(0.9);
+      pointer-events: none;
+    }
+
+    .topbar {
+      position: relative;
+      margin-top: -42px;
       display: flex;
       align-items: center;
       gap: 10px;
       padding: 10px 12px;
       flex-wrap: wrap;
+      width: max-content;
       max-width: min(94vw, 1220px);
-      z-index: 10;
+      
+      opacity: 0;
+      visibility: hidden;
+      transform: translateY(-20px) scale(0.96);
+      transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+      transition-delay: 0.15s;
+    }
+
+    .topbar-wrapper:hover .topbar,
+    .topbar-wrapper:focus-within .topbar {
+      opacity: 1;
+      visibility: visible;
+      transform: translateY(0) scale(1);
+      transition-delay: 0s;
     }
 
     button, input { font: inherit; }
@@ -1012,8 +1061,10 @@
 </head>
 <body>
   <div class="app" id="appRoot">
-    <div class="topbar panel">
-      <button id="btn12" class="active" type="button">12 hr</button>
+    <div class="topbar-wrapper">
+      <div class="topbar-icon">⚙️ Settings</div>
+      <div class="topbar panel">
+        <button id="btn12" class="active" type="button">12 hr</button>
       <button id="btn24" type="button">24 hr</button>
       <div class="divider"></div>
       <div class="slider-wrap">
@@ -1063,6 +1114,7 @@
       </div>
       <div class="divider"></div>
       <button id="btnFullscreen" type="button">Fullscreen</button>
+      </div>
     </div>
 
     <button class="mini-toggle collapsed-fab left" id="expandQuickBtn" type="button" title="Expand quick timers">+</button>
