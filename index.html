@@ -799,6 +799,16 @@
       text-transform: uppercase;
       letter-spacing: 0.06em;
       margin-bottom: 4px;
+      display: flex;
+      gap: 4px;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .wc-tz {
+      font-size: 9px;
+      color: rgba(255,255,255,0.25);
+      font-weight: 600;
     }
 
     .world-clock .wc-time {
@@ -1407,9 +1417,41 @@
       </div>
       <div class="divider"></div>
       <div class="ios-toggle-wrap">
+        <label for="ytToggle">YouTube</label>
+        <label class="ios-toggle">
+          <input type="checkbox" id="ytToggle" checked />
+          <span class="ios-slider"></span>
+        </label>
+      </div>
+      <div class="divider"></div>
+      <div class="ios-toggle-wrap">
+        <label for="dateToggle">Date</label>
+        <label class="ios-toggle">
+          <input type="checkbox" id="dateToggle" checked />
+          <span class="ios-slider"></span>
+        </label>
+      </div>
+      <div class="divider"></div>
+      <div class="ios-toggle-wrap">
         <label for="lunarToggle">Lunar date</label>
         <label class="ios-toggle">
           <input type="checkbox" id="lunarToggle" checked />
+          <span class="ios-slider"></span>
+        </label>
+      </div>
+      <div class="divider"></div>
+      <div class="ios-toggle-wrap">
+        <label for="tzToggle">Time Zone</label>
+        <label class="ios-toggle">
+          <input type="checkbox" id="tzToggle" checked />
+          <span class="ios-slider"></span>
+        </label>
+      </div>
+      <div class="divider"></div>
+      <div class="ios-toggle-wrap">
+        <label for="wcToggle">World Clock</label>
+        <label class="ios-toggle">
+          <input type="checkbox" id="wcToggle" checked />
           <span class="ios-slider"></span>
         </label>
       </div>
@@ -1431,9 +1473,12 @@
     </div>
 
     <div class="world-clocks" id="worldClocks">
-      <div class="world-clock"><div class="wc-name">New York</div><div class="wc-time" id="wc-nyc">00:00 AM</div></div>
-      <div class="world-clock"><div class="wc-name">London</div><div class="wc-time" id="wc-lon">00:00 AM</div></div>
-      <div class="world-clock"><div class="wc-name">Beijing</div><div class="wc-time" id="wc-bjs">00:00 AM</div></div>
+      <div class="world-clock"><div class="wc-name">New York <span class="wc-tz" id="wc-nyc-tz"></span></div><div class="wc-time" id="wc-nyc"></div></div>
+      <div class="world-clock"><div class="wc-name">London <span class="wc-tz" id="wc-lon-tz"></span></div><div class="wc-time" id="wc-lon"></div></div>
+      <div class="world-clock"><div class="wc-name">Beijing <span class="wc-tz" id="wc-bjs-tz"></span></div><div class="wc-time" id="wc-bjs"></div></div>
+      <div class="world-clock"><div class="wc-name">Tokyo <span class="wc-tz" id="wc-tky-tz"></span></div><div class="wc-time" id="wc-tky"></div></div>
+      <div class="world-clock"><div class="wc-name">Paris <span class="wc-tz" id="wc-par-tz"></span></div><div class="wc-time" id="wc-par"></div></div>
+      <div class="world-clock"><div class="wc-name">Denver <span class="wc-tz" id="wc-den-tz"></span></div><div class="wc-time" id="wc-den"></div></div>
     </div>
 
     <div class="date-info-container" id="dateInfo">
@@ -1585,10 +1630,24 @@
     const themeSelect = document.getElementById('themeSelect');
     const bgInput = document.getElementById('bgInput');
     const lunarToggle = document.getElementById('lunarToggle');
+    const ytToggle = document.getElementById('ytToggle');
+    const dateToggle = document.getElementById('dateToggle');
+    const tzToggle = document.getElementById('tzToggle');
+    const wcToggle = document.getElementById('wcToggle');
 
     const wcNycEl = document.getElementById('wc-nyc');
     const wcLonEl = document.getElementById('wc-lon');
     const wcBjsEl = document.getElementById('wc-bjs');
+    const wcTkyEl = document.getElementById('wc-tky');
+    const wcParEl = document.getElementById('wc-par');
+    const wcDenEl = document.getElementById('wc-den');
+
+    const wcNycTz = document.getElementById('wc-nyc-tz');
+    const wcLonTz = document.getElementById('wc-lon-tz');
+    const wcBjsTz = document.getElementById('wc-bjs-tz');
+    const wcTkyTz = document.getElementById('wc-tky-tz');
+    const wcParTz = document.getElementById('wc-par-tz');
+    const wcDenTz = document.getElementById('wc-den-tz');
 
     const quickPanel = document.getElementById('quickPanel');
     const customPanel = document.getElementById('customPanel');
@@ -1639,6 +1698,10 @@
     let ytIsSeeking = false;
     let ytVolumeLevel = 100;
     let showLunarDate = true;
+    let showYt = true;
+    let showDateDisplay = true;
+    let showTz = true;
+    let showWorldClock = true;
     let ytHistory = [];      // [{videoId, title, author}]
     let ytHistoryIndex = -1;
     let ytNavigating = false; // true when prev/next is in progress
@@ -1931,7 +1994,11 @@
         todoItems,
         ytUrl: ytState.url,
         ytVolume: ytVolumeLevel,
-        showLunarDate
+        showLunarDate,
+        showYt,
+        showDateDisplay,
+        showTz,
+        showWorldClock
       };
 
       try {
@@ -2291,14 +2358,12 @@
       
       const wcEl = document.getElementById('worldClocks');
       if (wcEl) {
-        // Place world clocks 20px below the visual bottom of the main clock
+        wcEl.style.display = showWorldClock ? 'flex' : 'none';
         wcEl.style.top = `${timeRectAfter.bottom + 20}px`;
       }
 
       const dateInfoEl = document.getElementById('dateInfo');
       if (dateInfoEl) {
-        // Place date info 16px above the visual top of the main clock
-        // Ensure it doesn't overlap the topbar (~80px)
         dateInfoEl.style.top = `${Math.max(90, timeRectAfter.top - 16)}px`;
       }
       
@@ -2544,9 +2609,10 @@
       });
 
       dateEl.textContent = dateFmt.format(now);
+      dateEl.style.display = showDateDisplay ? 'block' : 'none';
       
       if (lunarDateEl) {
-        if (showLunarDate) {
+        if (showLunarDate && showDateDisplay) {
           lunarDateEl.textContent = lunarFmt.format(now);
           lunarDateEl.style.display = 'block';
         } else {
@@ -2555,11 +2621,33 @@
       }
       
       tzEl.textContent = `${getZoneShortName(now)} · ${getZoneLongName(now).toUpperCase()}`;
+      tzEl.style.display = showTz ? 'block' : 'none';
+
+      if (ytContainer) {
+        ytContainer.style.display = showYt ? 'flex' : 'none';
+      }
       
       const wcOpts = { hour: 'numeric', minute: '2-digit', hour12: !use24Hour };
-      wcNycEl.textContent = new Intl.DateTimeFormat(undefined, { ...wcOpts, timeZone: 'America/New_York' }).format(now);
-      wcLonEl.textContent = new Intl.DateTimeFormat(undefined, { ...wcOpts, timeZone: 'Europe/London' }).format(now);
-      wcBjsEl.textContent = new Intl.DateTimeFormat(undefined, { ...wcOpts, timeZone: 'Asia/Shanghai' }).format(now);
+      const getTzAbbr = (date, tz) => {
+        return new Intl.DateTimeFormat(undefined, { timeZone: tz, timeZoneName: 'short' })
+          .formatToParts(date).find(p => p.type === 'timeZoneName')?.value || '';
+      };
+
+      if (showWorldClock) {
+        wcNycEl.textContent = new Intl.DateTimeFormat(undefined, { ...wcOpts, timeZone: 'America/New_York' }).format(now);
+        wcLonEl.textContent = new Intl.DateTimeFormat(undefined, { ...wcOpts, timeZone: 'Europe/London' }).format(now);
+        wcBjsEl.textContent = new Intl.DateTimeFormat(undefined, { ...wcOpts, timeZone: 'Asia/Shanghai' }).format(now);
+        wcTkyEl.textContent = new Intl.DateTimeFormat(undefined, { ...wcOpts, timeZone: 'Asia/Tokyo' }).format(now);
+        wcParEl.textContent = new Intl.DateTimeFormat(undefined, { ...wcOpts, timeZone: 'Europe/Paris' }).format(now);
+        wcDenEl.textContent = new Intl.DateTimeFormat(undefined, { ...wcOpts, timeZone: 'America/Denver' }).format(now);
+
+        wcNycTz.textContent = getTzAbbr(now, 'America/New_York');
+        wcLonTz.textContent = getTzAbbr(now, 'Europe/London');
+        wcBjsTz.textContent = getTzAbbr(now, 'Asia/Shanghai');
+        wcTkyTz.textContent = getTzAbbr(now, 'Asia/Tokyo');
+        wcParTz.textContent = getTzAbbr(now, 'Europe/Paris');
+        wcDenTz.textContent = getTzAbbr(now, 'America/Denver');
+      }
 
       applyTimeScale();
       updateTimerUI();
@@ -2667,6 +2755,30 @@
       saveSettings();
     });
 
+    ytToggle.addEventListener('change', () => {
+      showYt = ytToggle.checked;
+      updateClock();
+      saveSettings();
+    });
+
+    dateToggle.addEventListener('change', () => {
+      showDateDisplay = dateToggle.checked;
+      updateClock();
+      saveSettings();
+    });
+
+    tzToggle.addEventListener('change', () => {
+      showTz = tzToggle.checked;
+      updateClock();
+      saveSettings();
+    });
+
+    wcToggle.addEventListener('change', () => {
+      showWorldClock = wcToggle.checked;
+      updateClock();
+      saveSettings();
+    });
+
     alarmSoundSelect.addEventListener('change', () => {
       saveSettings();
       // Play a demo burst to preview sound
@@ -2769,7 +2881,16 @@
     if (typeof savedSettings.showLunarDate === 'boolean') {
       showLunarDate = savedSettings.showLunarDate;
     }
+    if (typeof savedSettings.showYt === 'boolean') showYt = savedSettings.showYt;
+    if (typeof savedSettings.showDateDisplay === 'boolean') showDateDisplay = savedSettings.showDateDisplay;
+    if (typeof savedSettings.showTz === 'boolean') showTz = savedSettings.showTz;
+    if (typeof savedSettings.showWorldClock === 'boolean') showWorldClock = savedSettings.showWorldClock;
+
     lunarToggle.checked = showLunarDate;
+    ytToggle.checked = showYt;
+    dateToggle.checked = showDateDisplay;
+    tzToggle.checked = showTz;
+    wcToggle.checked = showWorldClock;
 
     applyPanelOpacity();
     applyClockStyle(savedSettings.clockStyle || 'default');
