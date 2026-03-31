@@ -1367,8 +1367,8 @@
     <div class="topbar-wrapper">
       <div class="topbar-icon">⚙️ Settings</div>
       <div class="topbar panel">
-        <button id="btn12" class="active" type="button">12 hr</button>
-      <button id="btn24" type="button">24 hr</button>
+        <button id="btn12" class="active" type="button">12 hr (T)</button>
+      <button id="btn24" type="button">24 hr (T)</button>
       <div class="divider"></div>
       <div class="slider-wrap">
         <label for="sizeSlider">Size</label>
@@ -1456,7 +1456,7 @@
         </label>
       </div>
       <div class="divider"></div>
-      <button id="btnFullscreen" type="button">Fullscreen</button>
+      <button id="btnFullscreen" type="button">Fullscreen (F)</button>
       </div>
     </div>
 
@@ -1529,7 +1529,7 @@
 
     <aside class="floating-panel panel quick-panel" id="quickPanel">
       <div class="panel-header">
-        <div class="panel-title">Quick timers</div>
+        <div class="panel-title">Quick timers (Q)</div>
         <button class="mini-toggle" id="collapseQuickBtn" type="button" title="Collapse quick timers">−</button>
       </div>
       <div class="quick-scroll">
@@ -1547,7 +1547,7 @@
 
     <aside class="floating-panel panel custom-panel" id="customPanel">
       <div class="panel-header">
-        <div class="panel-title">Custom timer</div>
+        <div class="panel-title">Custom timer (W)</div>
         <button class="mini-toggle" id="collapseCustomBtn" type="button" title="Collapse custom timer">−</button>
       </div>
       <div class="timer-large" id="timerRemaining">00:00</div>
@@ -1585,7 +1585,7 @@
       <div class="todo-resize-handle l-edge" data-resize="l"></div>
       <div class="todo-resize-handle r-edge" data-resize="r"></div>
       <div class="todo-header">
-        <div class="todo-title">To-do list</div>
+        <div class="todo-title">To-do list (R)</div>
         <button class="mini-toggle" id="collapseTodoBtn" type="button">−</button>
       </div>
       <div class="todo-input-row">
@@ -2612,7 +2612,7 @@
       dateEl.style.display = showDateDisplay ? 'block' : 'none';
       
       if (lunarDateEl) {
-        if (showLunarDate && showDateDisplay) {
+        if (showLunarDate) {
           lunarDateEl.textContent = lunarFmt.format(now);
           lunarDateEl.style.display = 'block';
         } else {
