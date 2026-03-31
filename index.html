@@ -531,6 +531,22 @@
       align-items: center;
     }
 
+    .time.analog-style {
+      display: block;
+      width: 500px;
+      height: 500px;
+      font-size: 0;
+      letter-spacing: 0;
+      text-shadow: none;
+      line-height: 1;
+    }
+
+    .analog-svg {
+      width: 100%;
+      height: 100%;
+      display: block;
+    }
+
     .segment-digit {
       position: relative;
       width: 0.6em;
@@ -1532,6 +1548,7 @@
           <option value="segment">7 segment</option>
           <option value="flip">Flip clock</option>
           <option value="retro">Retro tech</option>
+          <option value="analog">Analog Classic</option>
         </select>
         <div class="custom-dropdown" id="clockStyleDropdown">
           <button class="dropdown-trigger" id="clockStyleTrigger" type="button">Default</button>
@@ -1544,6 +1561,7 @@
             <div class="dropdown-item" data-value="segment">7 segment</div>
             <div class="dropdown-item" data-value="flip">Flip clock</div>
             <div class="dropdown-item" data-value="retro">Retro tech</div>
+            <div class="dropdown-item" data-value="analog">Analog Classic</div>
           </div>
         </div>
       </div>
@@ -2246,6 +2264,12 @@
           spacing: '-0.05em',
           weight: '700',
           transform: 'uppercase'
+        },
+        analog: {
+          font: 'Inter, "Segoe UI", Roboto, Helvetica, Arial, sans-serif',
+          spacing: '0',
+          weight: '700',
+          transform: 'none'
         }
       };
       const chosen = styleMap[styleKey] || styleMap.default;
@@ -2423,6 +2447,98 @@
         <span class="flip-card">${minuteChars[0]}</span>
         <span class="flip-card">${minuteChars[1]}</span>
       `;
+    }
+
+    function renderAnalogClock(h24, mins, secs, ms) {
+      const cx = 250, cy = 250, faceR = 228, tickR = 218;
+      const hours = h24 % 12;
+
+      // Smooth angles (use ms for sub-second precision)
+      const secAngle  = (secs + ms / 1000) * 6;
+      const minAngle  = mins * 6 + (secs + ms / 1000) * 0.1;
+      const hourAngle = hours * 30 + (mins + secs / 60) * 0.5;
+
+      // Helper: polar to cartesian
+      const px = (r, angleDeg) => (cx + r * Math.cos((angleDeg - 90) * Math.PI / 180)).toFixed(2);
+      const py = (r, angleDeg) => (cy + r * Math.sin((angleDeg - 90) * Math.PI / 180)).toFixed(2);
+
+      // Tick marks (60 total)
+      let ticks = '';
+      for (let i = 0; i < 60; i++) {
+        const a = i * 6;
+        const isQuarter = i % 15 === 0;   // 12, 3, 6, 9
+        const isHour    = i % 5  === 0;   // all 12 hour positions
+        const len  = isQuarter ? 24 : isHour ? 16 : 8;
+        const w    = isQuarter ? 5  : isHour ? 3  : 1.5;
+        ticks += `<line x1="${px(tickR, a)}" y1="${py(tickR, a)}"
+                        x2="${px(tickR - len, a)}" y2="${py(tickR - len, a)}"
+                        stroke="#222" stroke-width="${w}" stroke-linecap="round"/>`;
+      }
+
+      // Numbers 1–12
+      let nums = '';
+      for (let i = 1; i <= 12; i++) {
+        const a = i * 30;
+        const nr = tickR - 42;
+        nums += `<text x="${px(nr, a)}" y="${py(nr, a)}"
+                       text-anchor="middle" dominant-baseline="central"
+                       font-size="30" font-weight="700"
+                       font-family="Inter, Arial, sans-serif" fill="#111">${i}</text>`;
+      }
+
+      // Hand line helper (draws from back-pivot to tip)
+      const hand = (angle, tipR, backR, sw, color, extraAttrs = '') =>
+        `<line x1="${px(backR, angle + 180)}" y1="${py(backR, angle + 180)}"
+               x2="${px(tipR,  angle)}"       y2="${py(tipR,  angle)}"
+               stroke="${color}" stroke-width="${sw}" stroke-linecap="round"
+               filter="url(#aHandShadow)" ${extraAttrs}/>`;
+
+      timeEl.classList.add('analog-style');
+      timeEl.classList.remove('flip-style', 'led-style', 'led-green-style', 'led-blue-style',
+        'led-orange-style', 'led-mixed-style', 'segment-style');
+
+      timeEl.innerHTML = `
+        <svg class="analog-svg" viewBox="0 0 500 500" xmlns="http://www.w3.org/2000/svg">
+          <defs>
+            <radialGradient id="aBezel" cx="42%" cy="32%" r="68%">
+              <stop offset="0%"   stop-color="#484848"/>
+              <stop offset="55%"  stop-color="#1c1c1c"/>
+              <stop offset="100%" stop-color="#080808"/>
+            </radialGradient>
+            <radialGradient id="aFace" cx="38%" cy="28%" r="72%">
+              <stop offset="0%"   stop-color="#ffffff"/>
+              <stop offset="100%" stop-color="#ede9e0"/>
+            </radialGradient>
+            <filter id="aHandShadow" x="-20%" y="-20%" width="140%" height="140%">
+              <feDropShadow dx="1" dy="2" stdDeviation="2.5" flood-opacity="0.28"/>
+            </filter>
+          </defs>
+
+          <!-- Outer bezel -->
+          <circle cx="250" cy="250" r="248" fill="url(#aBezel)"/>
+          <!-- Bezel inner ring highlight -->
+          <circle cx="250" cy="250" r="234" fill="none" stroke="rgba(255,255,255,0.07)" stroke-width="2"/>
+          <!-- Clock face -->
+          <circle cx="250" cy="250" r="${faceR}" fill="url(#aFace)"/>
+          <!-- Face inner shadow -->
+          <circle cx="250" cy="250" r="${faceR}" fill="none" stroke="rgba(0,0,0,0.09)" stroke-width="5"/>
+
+          <!-- Tick marks -->
+          ${ticks}
+          <!-- Hour numbers -->
+          ${nums}
+
+          <!-- Hour hand -->
+          ${hand(hourAngle, 138, 24, 9.5, '#1a1a1a')}
+          <!-- Minute hand -->
+          ${hand(minAngle,  190, 26, 6,   '#1a1a1a')}
+          <!-- Second hand (with counterweight tail) -->
+          ${hand(secAngle,  200, 52, 2.2, '#e02020')}
+
+          <!-- Center cap -->
+          <circle cx="250" cy="250" r="10" fill="#b8b8b8" stroke="#888" stroke-width="1.5"/>
+          <circle cx="250" cy="250" r="5"  fill="#e02020"/>
+        </svg>`;
     }
 
     function renderTodoList() {
@@ -2814,7 +2930,9 @@
       const hoursText = use24Hour ? String(h24).padStart(2, '0') : String(h24 % 12 || 12);
       const ampmText = h24 >= 12 ? 'PM' : 'AM';
 
-      if (clockStyleSelect.value === 'flip') {
+      if (clockStyleSelect.value === 'analog') {
+        renderAnalogClock(h24, now.getMinutes(), secs, now.getMilliseconds());
+      } else if (clockStyleSelect.value === 'flip') {
         renderFlipClock(hoursText, mins, ampmText);
       } else if (clockStyleSelect.value === 'segment') {
         renderSegmentClock(hoursText, mins, ampmText, secs % 2 === 0);
@@ -2823,7 +2941,8 @@
       }
 
       const colonNode = document.getElementById('colon');
-      if (colonNode && clockStyleSelect.value !== 'segment') colonNode.classList.toggle('off', secs % 2 === 1);
+      if (colonNode && clockStyleSelect.value !== 'segment' && clockStyleSelect.value !== 'analog')
+        colonNode.classList.toggle('off', secs % 2 === 1);
 
       const dateFmt = new Intl.DateTimeFormat(undefined, {
         weekday: 'long', month: 'long', day: 'numeric', year: 'numeric'
