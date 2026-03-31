@@ -1515,6 +1515,261 @@
 
       .divider { display: none; }
     }
+
+    /* ══════════════════════════════════════════
+       MOBILE PORTRAIT LAYOUT  (≤ 600 px)
+       ══════════════════════════════════════════ */
+    @media (max-width: 600px) {
+
+      /* Allow the page to scroll */
+      html, body {
+        height: auto;
+        overflow-y: auto;
+        overflow-x: hidden;
+      }
+
+      /* Root: vertical flex column */
+      .app {
+        height: auto;
+        min-height: 100svh;
+        overflow: visible;
+        padding: 0;
+        display: flex;
+        flex-direction: column;
+        align-items: stretch;
+      }
+
+      /* ── Settings header – sticky at top ── */
+      .topbar-wrapper {
+        position: sticky;
+        top: 0;
+        left: auto;
+        transform: none;
+        z-index: 30;
+        width: 100%;
+        padding: 0;
+        flex-direction: column;
+        align-items: stretch;
+        background: var(--panel);
+        border-bottom: 1px solid var(--panel-border);
+        backdrop-filter: blur(18px);
+      }
+
+      /* Icon row – always visible; acts as tap toggle */
+      .topbar-icon {
+        border-radius: 0;
+        border: none;
+        box-shadow: none;
+        backdrop-filter: none;
+        padding: 13px 18px;
+        width: 100%;
+        justify-content: space-between;
+        font-size: 15px;
+      }
+      .topbar-icon::after {
+        content: '▾';
+        font-size: 12px;
+        opacity: 0.55;
+        margin-left: 6px;
+      }
+      .topbar-wrapper.mob-open .topbar-icon::after {
+        content: '▴';
+      }
+
+      /* Override desktop hover-hide of icon */
+      .topbar-wrapper:hover .topbar-icon,
+      .topbar-wrapper:focus-within .topbar-icon {
+        opacity: 1 !important;
+        transform: none !important;
+        pointer-events: auto !important;
+      }
+
+      /* Settings panel – hidden until .mob-open */
+      .topbar {
+        display: none;
+        position: static;
+        transform: none;
+        left: auto;
+        width: 100%;
+        max-width: 100%;
+        flex-direction: column;
+        align-items: stretch;
+        gap: 0;
+        padding: 0 14px 12px;
+        border-top: 1px solid var(--panel-border);
+        opacity: 1;
+        visibility: visible;
+        transition: none;
+      }
+      /* Prevent desktop hover from opening panel on mobile */
+      .topbar-wrapper:hover .topbar,
+      .topbar-wrapper:focus-within .topbar {
+        display: none;
+      }
+      /* Only .mob-open shows it */
+      .topbar-wrapper.mob-open .topbar {
+        display: flex !important;
+      }
+
+      /* Row items inside settings panel */
+      .topbar button {
+        padding: 12px 14px;
+        border-radius: 12px;
+        flex: 1;
+      }
+      .topbar .divider { display: none; }
+      .topbar .slider-wrap,
+      .topbar .ios-toggle-wrap {
+        width: 100%;
+        justify-content: space-between;
+        padding: 10px 0;
+        border-bottom: 1px solid rgba(255,255,255,0.06);
+      }
+      /* Dropdown menus inside settings panel */
+      .topbar .dropdown-menu {
+        position: fixed;
+        left: 14px;
+        right: 14px;
+        width: auto;
+        min-width: 0;
+        max-height: 55vh;
+        overflow-y: auto;
+        z-index: 200;
+      }
+      .topbar .dropdown-submenu {
+        position: static;
+        margin: 4px 0 0 8px;
+        border-radius: 10px;
+      }
+      .topbar .has-submenu:hover .dropdown-submenu {
+        display: none; /* disable hover on mobile – use .submenu-open */
+      }
+      .topbar .has-submenu.submenu-open .dropdown-submenu {
+        display: flex;
+      }
+
+      /* ── Clock area ── */
+      .center {
+        position: relative;
+        inset: auto;
+        width: 100%;
+        height: min(44vw, 250px);
+        min-height: 140px;
+        flex-shrink: 0;
+        z-index: 1;
+      }
+      .clock-stage {
+        padding: 0 10px;
+        height: 100%;
+        width: 100%;
+      }
+
+      /* ── Date / YouTube / World clocks – natural flow ── */
+      .date-info-container {
+        position: static !important;
+        transform: none !important;
+        top: auto !important;
+        width: 100%;
+        padding: 8px 14px 4px;
+        pointer-events: auto;
+      }
+      .yt-music-bar {
+        width: 100%;
+        min-width: 0;
+        border-radius: 16px;
+        flex-wrap: wrap;
+        gap: 8px;
+        padding: 8px 12px;
+      }
+      .yt-seeker-wrap {
+        order: 10;
+        width: 100%;
+        flex-basis: 100%;
+      }
+      .yt-controls { width: 100%; max-width: 100%; }
+      .yt-input    { flex: 1; min-width: 0; }
+
+      .world-clocks {
+        position: static !important;
+        transform: none !important;
+        top: auto !important;
+        display: flex !important;
+        flex-wrap: wrap;
+        justify-content: center;
+        gap: 8px;
+        padding: 6px 14px 12px;
+        pointer-events: auto;
+      }
+      .world-clock {
+        min-width: 80px;
+        flex: 1 1 80px;
+        max-width: calc(33% - 6px);
+      }
+
+      /* ── Timer panels – stacked full-width ── */
+      .floating-panel {
+        position: static !important;
+        width: auto !important;
+        max-width: none;
+        max-height: none;
+        margin: 10px 14px 0;
+      }
+      .collapsed-fab                { display: none !important; }
+      .floating-panel.collapsed     { display: none !important; }
+      .preset-grid {
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+      }
+
+      /* ── To-do panel ── */
+      .todo-panel {
+        position: static !important;
+        transform: none !important;
+        bottom: auto !important;
+        left: auto !important;
+        width: auto !important;
+        min-width: 0;
+        height: auto !important;
+        min-height: 180px;
+        max-height: 320px;
+        margin: 10px 14px;
+        resize: none;
+      }
+      .todo-panel.collapsed {
+        display: none;
+        opacity: 1;
+        transform: none;
+      }
+      .todo-fab {
+        position: static !important;
+        transform: none !important;
+        display: none;
+        margin: 8px 14px;
+      }
+      .todo-fab.visible {
+        display: flex;
+        width: calc(100% - 28px);
+        justify-content: center;
+      }
+
+      /* ── Misc ── */
+      .hint { display: none; }
+      .github-link-bottom {
+        position: static !important;
+        display: block;
+        text-align: center;
+        padding: 14px 0 20px;
+        bottom: auto !important;
+        left: auto !important;
+      }
+      .alarm-banner {
+        position: fixed;
+        top: 56px;
+      }
+      .mini-toggle {
+        width: 36px;
+        height: 36px;
+      }
+    }
   </style>
 </head>
 <body>
@@ -2682,6 +2937,10 @@
       presetButtons.forEach(btn => btn.classList.remove('active'));
     }
 
+    function isMobile() {
+      return window.innerWidth <= 600;
+    }
+
     function applyTimeScale() {
       timeEl.style.transform = 'scale(1)';
       const stageRect = timeStageEl.getBoundingClientRect();
@@ -2693,20 +2952,28 @@
       const finalScale = Math.max(0.1, Math.min(requestedScale, maxScale));
       timeEl.style.transform = `scale(${finalScale})`;
       sizeValue.textContent = `${sizePercent}%`;
-      
-      const timeRectAfter = timeEl.getBoundingClientRect();
-      
+
       const wcEl = document.getElementById('worldClocks');
-      if (wcEl) {
-        wcEl.style.display = showWorldClock ? 'flex' : 'none';
-        wcEl.style.top = `${timeRectAfter.bottom + 20}px`;
+      const dateInfoEl = document.getElementById('dateInfo');
+
+      if (isMobile()) {
+        // Let CSS handle layout on mobile; clear any JS-set inline positions
+        if (wcEl) {
+          wcEl.style.top = '';
+          wcEl.style.display = showWorldClock ? '' : 'none';
+        }
+        if (dateInfoEl) dateInfoEl.style.top = '';
+      } else {
+        const timeRectAfter = timeEl.getBoundingClientRect();
+        if (wcEl) {
+          wcEl.style.display = showWorldClock ? 'flex' : 'none';
+          wcEl.style.top = `${timeRectAfter.bottom + 20}px`;
+        }
+        if (dateInfoEl) {
+          dateInfoEl.style.top = `${Math.max(90, timeRectAfter.top - 16)}px`;
+        }
       }
 
-      const dateInfoEl = document.getElementById('dateInfo');
-      if (dateInfoEl) {
-        dateInfoEl.style.top = `${Math.max(90, timeRectAfter.top - 16)}px`;
-      }
-      
       saveSettings();
     }
 
@@ -3134,10 +3401,43 @@
       themeDropdown.classList.toggle('open');
     });
 
-    document.addEventListener('click', () => {
+    document.addEventListener('click', (e) => {
       themeDropdown.classList.remove('open');
       clockStyleDropdown.classList.remove('open');
       alarmSoundDropdown.classList.remove('open');
+      // Close mobile settings panel on outside tap
+      const topbarWrapper = document.querySelector('.topbar-wrapper');
+      if (isMobile() && topbarWrapper && !topbarWrapper.contains(e.target)) {
+        topbarWrapper.classList.remove('mob-open');
+      }
+    });
+
+    // Mobile: tap settings icon to toggle panel
+    const topbarIconEl = document.querySelector('.topbar-icon');
+    const topbarWrapperEl = document.querySelector('.topbar-wrapper');
+    if (topbarIconEl && topbarWrapperEl) {
+      topbarIconEl.addEventListener('click', (e) => {
+        if (isMobile()) {
+          e.stopPropagation();
+          topbarWrapperEl.classList.toggle('mob-open');
+        }
+      });
+    }
+
+    // Mobile: tap "Custom Background" submenu trigger to expand it
+    const customSubmenuTrigger = document.getElementById('customSubmenuTrigger');
+    if (customSubmenuTrigger) {
+      customSubmenuTrigger.addEventListener('click', (e) => {
+        if (isMobile()) {
+          e.stopPropagation();
+          customSubmenuTrigger.classList.toggle('submenu-open');
+        }
+      });
+    }
+
+    // Re-run layout on orientation / resize
+    window.addEventListener('resize', () => {
+      applyTimeScale();
     });
 
     themeDropdown.querySelectorAll('.dropdown-item[data-value]').forEach(item => {
