@@ -890,12 +890,12 @@
     }
 
     .world-clock {
-      background: rgba(255, 255, 255, 0.04);
-      border: 1px solid rgba(255, 255, 255, 0.08);
+      background: var(--panel);
+      border: 1px solid var(--panel-border);
       border-radius: 12px;
       padding: 10px 16px;
       text-align: center;
-      backdrop-filter: blur(8px);
+      backdrop-filter: blur(10px);
       min-width: 110px;
     }
 
@@ -1523,7 +1523,7 @@
       <div class="divider"></div>
       <div class="slider-wrap">
         <label for="clockStyleSelect">Clock style</label>
-        <select id="clockStyleSelect" class="clock-font-select">
+        <select id="clockStyleSelect" style="display:none">
           <option value="default">Default</option>
           <option value="led-green">LED neon green</option>
           <option value="led-blue">LED neon blue</option>
@@ -1533,15 +1533,36 @@
           <option value="flip">Flip clock</option>
           <option value="retro">Retro tech</option>
         </select>
+        <div class="custom-dropdown" id="clockStyleDropdown">
+          <button class="dropdown-trigger" id="clockStyleTrigger" type="button">Default</button>
+          <div class="dropdown-menu">
+            <div class="dropdown-item active" data-value="default">Default</div>
+            <div class="dropdown-item" data-value="led-green">LED neon green</div>
+            <div class="dropdown-item" data-value="led-blue">LED neon blue</div>
+            <div class="dropdown-item" data-value="led-orange">LED neon orange</div>
+            <div class="dropdown-item" data-value="led-mixed">LED neon mixed</div>
+            <div class="dropdown-item" data-value="segment">7 segment</div>
+            <div class="dropdown-item" data-value="flip">Flip clock</div>
+            <div class="dropdown-item" data-value="retro">Retro tech</div>
+          </div>
+        </div>
       </div>
       <div class="divider"></div>
       <div class="slider-wrap">
         <label for="alarmSoundSelect">Alarm</label>
-        <select id="alarmSoundSelect" class="clock-font-select" style="min-width: 110px;">
+        <select id="alarmSoundSelect" style="display:none">
           <option value="default">Default</option>
           <option value="beep">Digital Beep</option>
           <option value="marimba">Marimba</option>
         </select>
+        <div class="custom-dropdown" id="alarmSoundDropdown">
+          <button class="dropdown-trigger" id="alarmSoundTrigger" type="button">Default</button>
+          <div class="dropdown-menu">
+            <div class="dropdown-item active" data-value="default">Default</div>
+            <div class="dropdown-item" data-value="beep">Digital Beep</div>
+            <div class="dropdown-item" data-value="marimba">Marimba</div>
+          </div>
+        </div>
       </div>
       <div class="divider"></div>
       <div class="slider-wrap">
@@ -1785,6 +1806,10 @@
     const alarmSoundSelect = document.getElementById('alarmSoundSelect');
     const themeDropdown = document.getElementById('themeDropdown');
     const themeTrigger = document.getElementById('themeTrigger');
+    const clockStyleDropdown = document.getElementById('clockStyleDropdown');
+    const clockStyleTrigger = document.getElementById('clockStyleTrigger');
+    const alarmSoundDropdown = document.getElementById('alarmSoundDropdown');
+    const alarmSoundTrigger = document.getElementById('alarmSoundTrigger');
     const bgInput = document.getElementById('bgInput');
     const lunarToggle = document.getElementById('lunarToggle');
     const ytToggle = document.getElementById('ytToggle');
@@ -2228,7 +2253,14 @@
       document.documentElement.style.setProperty('--clock-letter-spacing', chosen.spacing);
       document.documentElement.style.setProperty('--clock-weight', chosen.weight);
       document.documentElement.style.setProperty('--clock-transform', chosen.transform);
-      clockStyleSelect.value = styleKey in styleMap ? styleKey : 'default';
+      const resolvedStyle = styleKey in styleMap ? styleKey : 'default';
+      clockStyleSelect.value = resolvedStyle;
+      if (clockStyleDropdown) {
+        clockStyleDropdown.querySelectorAll('.dropdown-item').forEach(it =>
+          it.classList.toggle('active', it.dataset.value === resolvedStyle));
+        const activeItem = clockStyleDropdown.querySelector(`.dropdown-item[data-value="${resolvedStyle}"]`);
+        if (clockStyleTrigger && activeItem) clockStyleTrigger.innerText = activeItem.innerText;
+      }
       saveSettings();
       applyTimeScale();
     }
@@ -2985,6 +3017,8 @@
 
     document.addEventListener('click', () => {
       themeDropdown.classList.remove('open');
+      clockStyleDropdown.classList.remove('open');
+      alarmSoundDropdown.classList.remove('open');
     });
 
     themeDropdown.querySelectorAll('.dropdown-item[data-value]').forEach(item => {
@@ -3008,6 +3042,40 @@
         
         applyTheme(val);
         saveSettings();
+      });
+    });
+
+    // Custom Clock Style Dropdown Interaction
+    clockStyleTrigger.addEventListener('click', (e) => {
+      e.stopPropagation();
+      clockStyleDropdown.classList.toggle('open');
+    });
+
+    clockStyleDropdown.querySelectorAll('.dropdown-item[data-value]').forEach(item => {
+      item.addEventListener('click', (e) => {
+        e.stopPropagation();
+        const val = item.dataset.value;
+        clockStyleDropdown.classList.remove('open');
+        applyClockStyle(val);
+      });
+    });
+
+    // Custom Alarm Sound Dropdown Interaction
+    alarmSoundTrigger.addEventListener('click', (e) => {
+      e.stopPropagation();
+      alarmSoundDropdown.classList.toggle('open');
+    });
+
+    alarmSoundDropdown.querySelectorAll('.dropdown-item[data-value]').forEach(item => {
+      item.addEventListener('click', (e) => {
+        e.stopPropagation();
+        const val = item.dataset.value;
+        alarmSoundDropdown.classList.remove('open');
+        alarmSoundSelect.value = val;
+        alarmSoundTrigger.innerText = item.innerText;
+        alarmSoundDropdown.querySelectorAll('.dropdown-item').forEach(it =>
+          it.classList.toggle('active', it.dataset.value === val));
+        alarmSoundSelect.dispatchEvent(new Event('change'));
       });
     });
 
@@ -3109,6 +3177,12 @@
     
     if (savedSettings.alarmSound) {
       alarmSoundSelect.value = savedSettings.alarmSound;
+      if (alarmSoundDropdown && alarmSoundTrigger) {
+        alarmSoundDropdown.querySelectorAll('.dropdown-item').forEach(it =>
+          it.classList.toggle('active', it.dataset.value === savedSettings.alarmSound));
+        const activeItem = alarmSoundDropdown.querySelector(`.dropdown-item[data-value="${savedSettings.alarmSound}"]`);
+        if (activeItem) alarmSoundTrigger.innerText = activeItem.innerText;
+      }
     }
     
     applyTheme(savedSettings.theme || 'dark');
