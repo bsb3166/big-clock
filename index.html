@@ -962,6 +962,8 @@
     body.theme-rock { background: url('assets/rock.png') center/cover no-repeat fixed; }
     body.theme-marble { background: url('assets/marble.png') center/cover no-repeat fixed; }
     body.theme-star-rain { background: url('assets/star-rain.jpg') center/cover no-repeat fixed; }
+    body.theme-aurora-pink { background: url('assets/background_pink.png') center/cover no-repeat fixed; }
+    body.theme-checkerboard { background: url('assets/tiles2.png') repeat; background-size: 600px; }
     body.theme-custom { background-size: cover; background-position: center; }
 
     .floating-panel {
@@ -1934,6 +1936,8 @@
             <div class="dropdown-item" data-value="rock">Natural Rock</div>
             <div class="dropdown-item" data-value="marble">Elegant Marble</div>
             <div class="dropdown-item" data-value="star-rain">Star Rain</div>
+            <div class="dropdown-item" data-value="aurora-pink">Aurora Pink</div>
+            <div class="dropdown-item" data-value="checkerboard">Checkerboard</div>
             <div class="dropdown-divider"></div>
             <div class="dropdown-item has-submenu" id="customSubmenuTrigger">
               Custom Background
@@ -2661,12 +2665,13 @@
 
     function applyTheme(themeKey) {
       document.body.classList.remove(
-        'theme-midnight', 'theme-forest', 'theme-glass', 
-        'theme-tiles', 'theme-rock', 'theme-marble', 'theme-star-rain', 'theme-custom'
+        'theme-midnight', 'theme-forest', 'theme-glass',
+        'theme-tiles', 'theme-rock', 'theme-marble', 'theme-star-rain',
+        'theme-aurora-pink', 'theme-checkerboard', 'theme-custom'
       );
       document.body.style.backgroundImage = '';
-      
-      const themesWithClass = ['midnight', 'forest', 'glass', 'tiles', 'rock', 'marble', 'star-rain', 'custom'];
+
+      const themesWithClass = ['midnight', 'forest', 'glass', 'tiles', 'rock', 'marble', 'star-rain', 'aurora-pink', 'checkerboard', 'custom'];
       if (themesWithClass.includes(themeKey)) {
         document.body.classList.add(`theme-${themeKey}`);
       }
