@@ -531,7 +531,8 @@
       align-items: center;
     }
 
-    .time.analog-style {
+    .time.analog-style,
+    .time.rolex-style {
       display: block;
       width: 500px;
       height: 500px;
@@ -1819,6 +1820,7 @@
           <option value="flip">Flip clock</option>
           <option value="retro">Retro tech</option>
           <option value="analog">Analog Classic</option>
+          <option value="rolex">Rolex Day-Date</option>
         </select>
         <div class="custom-dropdown" id="clockStyleDropdown">
           <button class="dropdown-trigger" id="clockStyleTrigger" type="button">Default</button>
@@ -1832,6 +1834,7 @@
             <div class="dropdown-item" data-value="flip">Flip clock</div>
             <div class="dropdown-item" data-value="retro">Retro tech</div>
             <div class="dropdown-item" data-value="analog">Analog Classic</div>
+            <div class="dropdown-item" data-value="rolex">Rolex Day-Date</div>
           </div>
         </div>
       </div>
@@ -2540,6 +2543,12 @@
           spacing: '0',
           weight: '700',
           transform: 'none'
+        },
+        rolex: {
+          font: 'Inter, "Segoe UI", Roboto, Helvetica, Arial, sans-serif',
+          spacing: '0',
+          weight: '400',
+          transform: 'none'
         }
       };
       const chosen = styleMap[styleKey] || styleMap.default;
@@ -2630,7 +2639,7 @@
       const hourChars = hoursText.padStart(2, ' ').split('');
       const minuteChars = minutesText.padStart(2, '0').split('');
       timeEl.classList.add('segment-style');
-      timeEl.classList.remove('flip-style', 'led-style', 'led-green-style', 'led-blue-style', 'led-orange-style', 'analog-style');
+      timeEl.classList.remove('flip-style', 'led-style', 'led-green-style', 'led-blue-style', 'led-orange-style', 'analog-style', 'rolex-style');
       timeEl.innerHTML = `
         ${renderSegmentDigit(hourChars[0])}
         ${renderSegmentDigit(hourChars[1])}
@@ -2674,7 +2683,7 @@
     }
 
     function renderStandardClock(hoursText, minutesText, ampmText) {
-      timeEl.classList.remove('flip-style', 'led-style', 'led-green-style', 'led-blue-style', 'led-orange-style', 'led-mixed-style', 'segment-style', 'analog-style');
+      timeEl.classList.remove('flip-style', 'led-style', 'led-green-style', 'led-blue-style', 'led-orange-style', 'led-mixed-style', 'segment-style', 'analog-style', 'rolex-style');
       if (clockStyleSelect.value === 'led-green') {
         timeEl.classList.add('led-style', 'led-green-style');
       }
@@ -2710,7 +2719,7 @@
       const minuteChars = minutesText.padStart(2, '0').split('');
       const hourPair = `${hourChars[0] === ' ' ? '&nbsp;' : hourChars[0]}${hourChars[1]}`;
       timeEl.classList.add('flip-style');
-      timeEl.classList.remove('led-style', 'led-green-style', 'led-blue-style', 'led-orange-style', 'segment-style', 'analog-style');
+      timeEl.classList.remove('led-style', 'led-green-style', 'led-blue-style', 'led-orange-style', 'segment-style', 'analog-style', 'rolex-style');
       timeEl.innerHTML = `
         <span class="flip-card"><span style="position:absolute;top:0.12em;left:0.16em;font-size:0.18em;letter-spacing:0.08em;opacity:0.72;">${use24Hour ? '' : ampmText}</span>${hourPair}</span>
         <span class="flip-colon colon" id="colon">:</span>
@@ -2765,7 +2774,7 @@
 
       timeEl.classList.add('analog-style');
       timeEl.classList.remove('flip-style', 'led-style', 'led-green-style', 'led-blue-style',
-        'led-orange-style', 'led-mixed-style', 'segment-style');
+        'led-orange-style', 'led-mixed-style', 'segment-style', 'rolex-style');
 
       timeEl.innerHTML = `
         <svg class="analog-svg" viewBox="0 0 500 500" xmlns="http://www.w3.org/2000/svg">
@@ -2808,6 +2817,163 @@
           <!-- Center cap -->
           <circle cx="250" cy="250" r="10" fill="#b8b8b8" stroke="#888" stroke-width="1.5"/>
           <circle cx="250" cy="250" r="5"  fill="#e02020"/>
+        </svg>`;
+    }
+
+    function renderRolexClock(h24, mins, secs, ms) {
+      const cx = 250, cy = 250;
+      const now = new Date();
+      const hours = h24 % 12;
+
+      const secAngle  = (secs + ms / 1000) * 6;
+      const minAngle  = mins * 6 + (secs + ms / 1000) * 0.1;
+      const hourAngle = hours * 30 + (mins + secs / 60) * 0.5;
+
+      const px = (r, deg) => (cx + r * Math.cos((deg - 90) * Math.PI / 180)).toFixed(2);
+      const py = (r, deg) => (cy + r * Math.sin((deg - 90) * Math.PI / 180)).toFixed(2);
+
+      const dayNames = ['SUNDAY','MONDAY','TUESDAY','WEDNESDAY','THURSDAY','FRIDAY','SATURDAY'];
+      const dayName  = dayNames[now.getDay()];
+      const dateNum  = now.getDate();
+
+      // ── Fluted bezel: 44 alternating light/dark gold wedges ──
+      const bezO = 248, bezI = 234, nF = 44;
+      let bezelFlutes = '';
+      for (let i = 0; i < nF; i++) {
+        const a1 = ((i       * 360 / nF) - 90) * Math.PI / 180;
+        const a2 = (((i + 1) * 360 / nF) - 90) * Math.PI / 180;
+        const pp = (r, a) => `${(cx + r * Math.cos(a)).toFixed(2)},${(cy + r * Math.sin(a)).toFixed(2)}`;
+        const d  = `M${pp(bezO,a1)} A${bezO},${bezO} 0 0,1 ${pp(bezO,a2)} L${pp(bezI,a2)} A${bezI},${bezI} 0 0,0 ${pp(bezI,a1)} Z`;
+        bezelFlutes += `<path d="${d}" fill="${i % 2 === 0 ? '#f2d255' : '#8c6c14'}"/>`;
+      }
+
+      // ── Roman numerals I–XI (XII replaced by day window) ──
+      const romanNums = ['XII','I','II','III','IV','V','VI','VII','VIII','IX','X','XI'];
+      let romans = '';
+      for (let i = 1; i <= 11; i++) {
+        romans += `<text x="${px(178, i * 30)}" y="${py(178, i * 30)}"
+          text-anchor="middle" dominant-baseline="central"
+          font-family="Georgia,'Times New Roman',serif" font-size="21" font-style="italic"
+          fill="#d4a520">${romanNums[i]}</text>`;
+      }
+
+      // ── Sword hand (polygon, tapers from wide shoulder near tip to slim tail) ──
+      const swordHand = (angle, tipR, backR, w, color) => {
+        const rad  = (angle - 90) * Math.PI / 180;
+        const perp = rad + Math.PI / 2;
+        const cr = Math.cos(rad),  sr = Math.sin(rad);
+        const cp = Math.cos(perp), sp = Math.sin(perp);
+        const pt = (along, side) =>
+          `${(cx + along * cr + side * cp).toFixed(2)},${(cy + along * sr + side * sp).toFixed(2)}`;
+        const hw = w / 2, hw2 = w / 3;
+        return `<polygon points="
+          ${pt(tipR,   0)}
+          ${pt(tipR * 0.12,  hw)}
+          ${pt(-backR * 0.2, hw2)}
+          ${pt(-backR,       hw2 * 0.6)}
+          ${pt(-backR,      -hw2 * 0.6)}
+          ${pt(-backR * 0.2,-hw2)}
+          ${pt(tipR * 0.12, -hw)}"
+          fill="${color}" filter="url(#rShadow)"/>`;
+      };
+
+      timeEl.classList.add('rolex-style');
+      timeEl.classList.remove('flip-style','led-style','led-green-style','led-blue-style',
+        'led-orange-style','led-mixed-style','segment-style','analog-style');
+
+      timeEl.innerHTML = `
+        <svg class="analog-svg" viewBox="0 0 500 500" xmlns="http://www.w3.org/2000/svg">
+          <defs>
+            <radialGradient id="rDial" cx="50%" cy="50%" r="50%">
+              <stop offset="0%"   stop-color="#22d864"/>
+              <stop offset="30%"  stop-color="#0daa44"/>
+              <stop offset="65%"  stop-color="#066e2c"/>
+              <stop offset="100%" stop-color="#022d0e"/>
+            </radialGradient>
+            <radialGradient id="rBezelBase" cx="42%" cy="30%" r="70%">
+              <stop offset="0%"   stop-color="#f0d060"/>
+              <stop offset="100%" stop-color="#9a7818"/>
+            </radialGradient>
+            <filter id="rShadow" x="-25%" y="-25%" width="150%" height="150%">
+              <feDropShadow dx="1" dy="2" stdDeviation="2.5" flood-opacity="0.4"/>
+            </filter>
+          </defs>
+
+          <!-- Bezel base ring -->
+          <circle cx="250" cy="250" r="250" fill="url(#rBezelBase)"/>
+          <!-- Fluted segments -->
+          ${bezelFlutes}
+          <!-- Bezel inner lip -->
+          <circle cx="250" cy="250" r="234" fill="none" stroke="#5a4408" stroke-width="2"/>
+          <circle cx="250" cy="250" r="232" fill="#18100a"/>
+
+          <!-- Dial face -->
+          <circle cx="250" cy="250" r="221" fill="url(#rDial)"/>
+          <circle cx="250" cy="250" r="221" fill="none" stroke="rgba(0,0,0,0.5)" stroke-width="4"/>
+
+          <!-- Roman numerals -->
+          ${romans}
+
+          <!-- DAY window at 12 o'clock -->
+          <rect x="208" y="73" width="84" height="27" rx="3" ry="3"
+                fill="#f4f2eb" stroke="#c8a020" stroke-width="1.5"/>
+          <text x="250" y="87" text-anchor="middle" dominant-baseline="central"
+                font-family="'Arial Narrow',Arial,sans-serif" font-size="10" font-weight="700"
+                letter-spacing="0.8" fill="#111">${dayName}</text>
+
+          <!-- DATE window at 3 o'clock -->
+          <rect x="374" y="231" width="44" height="38" rx="3" ry="3"
+                fill="#f4f2eb" stroke="#c8a020" stroke-width="2"/>
+          <rect x="374" y="231" width="44" height="13" rx="3" ry="3"
+                fill="rgba(255,255,255,0.5)"/>
+          <text x="396" y="252" text-anchor="middle" dominant-baseline="central"
+                font-family="'Arial Narrow',Arial,sans-serif" font-size="20" font-weight="700"
+                fill="#111">${dateNum}</text>
+
+          <!-- Crown logo -->
+          <text x="250" y="152" text-anchor="middle" dominant-baseline="central"
+                font-size="13" fill="#c8a020">♛</text>
+
+          <!-- ROLEX -->
+          <text x="250" y="170" text-anchor="middle" dominant-baseline="central"
+                font-family="Arial,Helvetica,sans-serif" font-size="14" font-weight="900"
+                letter-spacing="3.5" fill="#c8a020">ROLEX</text>
+
+          <!-- OYSTER PERPETUAL -->
+          <text x="250" y="186" text-anchor="middle" dominant-baseline="central"
+                font-family="Arial,sans-serif" font-size="7" letter-spacing="1.8"
+                fill="#a89038">OYSTER PERPETUAL</text>
+
+          <!-- DAY-DATE -->
+          <text x="250" y="198" text-anchor="middle" dominant-baseline="central"
+                font-family="Arial,sans-serif" font-size="7" letter-spacing="2.5"
+                fill="#a89038">DAY-DATE</text>
+
+          <!-- SUPERLATIVE CHRONOMETER -->
+          <text x="250" y="292" text-anchor="middle" dominant-baseline="central"
+                font-family="Arial,sans-serif" font-size="6" letter-spacing="0.8"
+                fill="#6a8858" opacity="0.85">SUPERLATIVE CHRONOMETER</text>
+          <text x="250" y="302" text-anchor="middle" dominant-baseline="central"
+                font-family="Arial,sans-serif" font-size="6" letter-spacing="0.8"
+                fill="#6a8858" opacity="0.85">OFFICIALLY CERTIFIED</text>
+
+          <!-- SWISS MADE -->
+          <text x="250" y="398" text-anchor="middle" dominant-baseline="central"
+                font-family="Arial,sans-serif" font-size="6.5" letter-spacing="1.5"
+                fill="#6a8858" opacity="0.8">SWISS MADE</text>
+
+          <!-- Hour hand -->
+          ${swordHand(hourAngle, 130, 26, 13, '#d4a520')}
+          <!-- Minute hand -->
+          ${swordHand(minAngle, 192, 30, 9, '#d4a520')}
+          <!-- Second hand -->
+          <line x1="${px(55, secAngle + 180)}" y1="${py(55, secAngle + 180)}"
+                x2="${px(208, secAngle)}"      y2="${py(208, secAngle)}"
+                stroke="#d4a520" stroke-width="2" stroke-linecap="round" filter="url(#rShadow)"/>
+
+          <!-- Center cap -->
+          <circle cx="250" cy="250" r="11" fill="#b89018" stroke="#7a5c08" stroke-width="1.5"/>
+          <circle cx="250" cy="250" r="5.5" fill="#f0cc40"/>
         </svg>`;
     }
 
@@ -3217,6 +3383,8 @@
 
       if (clockStyleSelect.value === 'analog') {
         renderAnalogClock(h24, now.getMinutes(), secs, now.getMilliseconds());
+      } else if (clockStyleSelect.value === 'rolex') {
+        renderRolexClock(h24, now.getMinutes(), secs, now.getMilliseconds());
       } else if (clockStyleSelect.value === 'flip') {
         renderFlipClock(hoursText, mins, ampmText);
       } else if (clockStyleSelect.value === 'segment') {
@@ -3226,7 +3394,7 @@
       }
 
       const colonNode = document.getElementById('colon');
-      if (colonNode && clockStyleSelect.value !== 'segment' && clockStyleSelect.value !== 'analog')
+      if (colonNode && clockStyleSelect.value !== 'segment' && clockStyleSelect.value !== 'analog' && clockStyleSelect.value !== 'rolex')
         colonNode.classList.toggle('off', secs % 2 === 1);
 
       const dateFmt = new Intl.DateTimeFormat(undefined, {
