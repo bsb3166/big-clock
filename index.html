@@ -982,8 +982,67 @@
       background: linear-gradient(135deg, transparent 0 50%, rgba(255,255,255,0.28) 50% 60%, transparent 60% 100%);
     }
 
-    .quick-panel { left: 22px; }
+    .quick-panel  { left: 22px; }
+    .alarm-panel  { left: 22px; /* top set by JS, below quick panel */ }
     .custom-panel { right: 22px; width: 260px; }
+
+    /* ── Alarm panel chips ── */
+    .alarm-chip {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 9px 12px;
+      border-radius: 12px;
+      border: 1px solid rgba(255,255,255,0.1);
+      background: rgba(255,255,255,0.04);
+      color: rgba(255,255,255,0.75);
+      cursor: pointer;
+      transition: background .15s, border-color .15s;
+      user-select: none;
+    }
+    .alarm-chip:hover { background: var(--panel-hover); }
+    .alarm-chip.active {
+      background: rgba(243,220,195,0.14);
+      border-color: rgba(243,220,195,0.4);
+      color: var(--fg);
+    }
+    .alarm-chip-time { font-size: 17px; font-weight: 700; letter-spacing: 0.02em; }
+    .alarm-chip-del {
+      width: 22px; height: 22px; padding: 0; flex-shrink: 0;
+      border-radius: 6px; border: none;
+      background: rgba(255,255,255,0.07);
+      color: rgba(255,255,255,0.55);
+      cursor: pointer; font-size: 15px; line-height: 1;
+      display: flex; align-items: center; justify-content: center;
+      transition: background .12s, color .12s;
+    }
+    .alarm-chip-del:hover { background: var(--red-bg); color: var(--red); }
+    .alarm-chips-grid { display: flex; flex-direction: column; gap: 6px; }
+    .alarm-chips-empty { font-size: 11px; opacity: 0.38; text-align: center; padding: 6px 0; }
+    .alarm-add-row { display: flex; gap: 8px; align-items: center; }
+    .alarm-time-input {
+      flex: 1; min-width: 0; padding: 8px 10px;
+      border-radius: 10px; border: 1px solid rgba(255,255,255,0.12);
+      background: rgba(255,255,255,0.06); color: var(--fg);
+      font-size: 15px; font-family: inherit;
+      color-scheme: dark; cursor: text;
+    }
+    .alarm-time-input:focus {
+      outline: none;
+      border-color: rgba(243,220,195,0.4);
+      background: rgba(255,255,255,0.09);
+    }
+    /* Hide native picker icon so typing is unblocked */
+    .alarm-time-input::-webkit-calendar-picker-indicator { display: none; }
+    .alarm-picker-btn {
+      width: 32px; height: 32px; padding: 0; flex-shrink: 0;
+      border-radius: 8px; border: 1px solid rgba(255,255,255,0.12);
+      background: rgba(255,255,255,0.06); cursor: pointer;
+      font-size: 16px; line-height: 1;
+      display: flex; align-items: center; justify-content: center;
+      transition: background .12s;
+    }
+    .alarm-picker-btn:hover { background: rgba(255,255,255,0.12); }
 
     .floating-panel.collapsed {
       opacity: 0;
@@ -1032,7 +1091,8 @@
       z-index: 9;
     }
 
-    .collapsed-fab.left { left: 22px; }
+    .collapsed-fab.left  { left: 22px; }
+    .collapsed-fab.left2 { left: 22px; top: 110px; } /* below left FAB */
     .collapsed-fab.right { right: 22px; }
     .collapsed-fab.visible { display: inline-flex; }
 
@@ -1722,6 +1782,8 @@
       }
       .quick-scroll { overflow-y: visible; max-height: none; }
       .collapsed-fab { display: none !important; }
+      .alarm-panel { position: static !important; width: auto !important; max-width: none; max-height: none !important; overflow: visible !important; margin: 10px 14px 0; }
+      .alarm-time-input { font-size: 15px; padding: 8px 10px; }
 
       /* Collapsed on mobile: show just the header strip (not hidden) */
       .floating-panel.collapsed { display: flex !important; opacity: 1 !important; transform: none !important; pointer-events: auto !important; }
@@ -1730,7 +1792,9 @@
       .floating-panel.collapsed .status,
       .floating-panel.collapsed .meta,
       .floating-panel.collapsed .custom-block,
-      .floating-panel.collapsed .action-row { display: none !important; }
+      .floating-panel.collapsed .action-row,
+      .floating-panel.collapsed .alarm-chips-grid,
+      .floating-panel.collapsed .alarm-add-row { display: none !important; }
       .floating-panel.collapsed .panel-header { justify-content: center; gap: 0; }
       .floating-panel.collapsed .panel-title  { display: none; }
 
@@ -1928,7 +1992,8 @@
       </div>
     </div>
 
-    <button class="mini-toggle collapsed-fab left" id="expandQuickBtn" type="button" title="Expand quick timers">+</button>
+    <button class="mini-toggle collapsed-fab left"  id="expandQuickBtn"  type="button" title="Expand quick timers">+</button>
+    <button class="mini-toggle collapsed-fab left2" id="expandAlarmBtn"  type="button" title="Expand alarms">+</button>
     <button class="mini-toggle collapsed-fab right" id="expandCustomBtn" type="button" title="Expand custom timer">+</button>
 
     <div class="center">
@@ -2010,6 +2075,19 @@
           <button class="chip" data-minutes="120" type="button"><strong>2 hr</strong><span>Long block</span></button>
           <button class="chip" data-minutes="180" type="button"><strong>3 hr</strong><span>Half day</span></button>
         </div>
+      </div>
+    </aside>
+
+    <aside class="floating-panel panel alarm-panel" id="alarmPanel">
+      <div class="panel-header">
+        <div class="panel-title">Alarms (A)</div>
+        <button class="mini-toggle" id="collapseAlarmBtn" type="button" title="Collapse alarms">−</button>
+      </div>
+      <div class="alarm-chips-grid" id="alarmChipsGrid"></div>
+      <div class="alarm-add-row">
+        <input type="time" id="alarmTimeInput" class="alarm-time-input" step="60" placeholder="HH:MM" />
+        <button class="alarm-picker-btn" id="alarmPickerBtn" type="button" title="Pick time">🕐</button>
+        <button class="action-btn primary" id="addAlarmChipBtn" type="button">Add</button>
       </div>
     </aside>
 
@@ -2132,6 +2210,12 @@
     const expandCustomBtn = document.getElementById('expandCustomBtn');
 
     const presetButtons = Array.from(document.querySelectorAll('.chip'));
+    const alarmPanelEl       = document.getElementById('alarmPanel');
+    const alarmChipsGridEl   = document.getElementById('alarmChipsGrid');
+    const alarmTimeInputEl   = document.getElementById('alarmTimeInput');
+    const addAlarmChipBtn    = document.getElementById('addAlarmChipBtn');
+    const collapseAlarmBtn   = document.getElementById('collapseAlarmBtn');
+    const expandAlarmBtn     = document.getElementById('expandAlarmBtn');
     const todoPanel = document.getElementById('todoPanel');
     const collapseTodoBtn = document.getElementById('collapseTodoBtn');
     const expandTodoBtn = document.getElementById('expandTodoBtn');
@@ -2164,6 +2248,9 @@
     let alarmStopTimeout = null;
     let alarmActive = false;
     let todoItems = [];
+    let alarmItems = [];           // [{id, time, enabled}]
+    let alarmFiredSet = new Set(); // IDs fired this minute
+    let lastAlarmMinute = -1;
     let draggedItemIndex = null;
     const ALARM_DURATION_MS = 20000;
 
@@ -2476,6 +2563,8 @@
         todoWidth: todoPanel ? todoPanel.style.width : '',
         todoHeight: todoPanel ? todoPanel.style.height : '',
         todoItems,
+        alarmItems,
+        alarmCollapsed: alarmPanelEl ? alarmPanelEl.classList.contains('collapsed') : false,
         ytUrl: ytState.url,
         ytVolume: ytVolumeLevel,
         showLunarDate,
@@ -3207,7 +3296,16 @@
           wcEl.style.display = showWorldClock ? '' : 'none';
         }
         if (dateInfoEl) dateInfoEl.style.top = '';
+        if (alarmPanelEl) alarmPanelEl.style.top = '';
       } else {
+        // Position alarm panel (and its expand FAB) below quick panel
+        if (alarmPanelEl && quickPanel) {
+          const qRect = quickPanel.getBoundingClientRect();
+          const appRect = appRoot.getBoundingClientRect();
+          const alarmTop = qRect.bottom - appRect.top + 10;
+          alarmPanelEl.style.top = `${alarmTop}px`;
+          if (expandAlarmBtn) expandAlarmBtn.style.top = `${alarmTop}px`;
+        }
         const timeRectAfter = timeEl.getBoundingClientRect();
         // For the Rolex style the bracelet overflows the element bounds via SVG overflow:visible.
         // Add extra clearance so date/yt info clears the top strap and world clocks clear the bottom strap.
@@ -3375,11 +3473,12 @@
       }
     }
 
-    function triggerAlarm() {
+    function triggerAlarm(message) {
       if (alarmActive) return;
       stopAlarm();
       alarmActive = true;
       appRoot.classList.add('shake');
+      alarmBannerEl.textContent = message || 'TIMER DONE';
       alarmBannerEl.classList.add('visible');
       alarmModalBackdropEl.classList.add('visible');
       playAlarmBurst();
@@ -3396,6 +3495,78 @@
       appRoot.classList.remove('shake');
       alarmBannerEl.classList.remove('visible');
       alarmModalBackdropEl.classList.remove('visible');
+    }
+
+    function formatAlarmTime(time24) {
+      if (use24Hour) return time24;
+      const [hStr, mStr] = time24.split(':');
+      let h = parseInt(hStr, 10);
+      const ampm = h >= 12 ? 'PM' : 'AM';
+      h = h % 12 || 12;
+      return `${h}:${mStr} ${ampm}`;
+    }
+
+    function renderAlarmChips() {
+      if (!alarmChipsGridEl) return;
+      if (alarmItems.length === 0) {
+        alarmChipsGridEl.innerHTML = '<div class="alarm-chips-empty">No alarms set</div>';
+        return;
+      }
+      alarmChipsGridEl.innerHTML = '';
+      alarmItems.forEach(alarm => {
+        const chip = document.createElement('div');
+        chip.className = 'alarm-chip' + (alarm.enabled ? ' active' : '');
+        chip.dataset.id = alarm.id;
+        chip.innerHTML = `
+          <span class="alarm-chip-time">${formatAlarmTime(alarm.time)}</span>
+          <button class="alarm-chip-del" data-id="${alarm.id}" title="Delete alarm" type="button">×</button>
+        `;
+        chip.addEventListener('click', (e) => {
+          if (e.target.classList.contains('alarm-chip-del')) return;
+          alarm.enabled = !alarm.enabled;
+          if (alarm.enabled) alarmFiredSet.delete(alarm.id);
+          renderAlarmChips();
+          saveSettings();
+        });
+        chip.querySelector('.alarm-chip-del').addEventListener('click', (e) => {
+          e.stopPropagation();
+          alarmItems = alarmItems.filter(a => a.id !== alarm.id);
+          alarmFiredSet.delete(alarm.id);
+          renderAlarmChips();
+          saveSettings();
+        });
+        alarmChipsGridEl.appendChild(chip);
+      });
+    }
+
+    function addAlarmChip() {
+      const time = alarmTimeInputEl ? alarmTimeInputEl.value : '';
+      if (!time) return;
+      if (alarmItems.some(a => a.time === time)) {
+        if (alarmTimeInputEl) alarmTimeInputEl.value = '';
+        return;
+      }
+      const id = 'alarm-' + Date.now();
+      alarmItems.push({ id, time, enabled: true });
+      alarmItems.sort((a, b) => a.time.localeCompare(b.time));
+      if (alarmTimeInputEl) alarmTimeInputEl.value = '';
+      renderAlarmChips();
+      saveSettings();
+    }
+
+    function checkClockAlarms(h24, mins) {
+      const currentMinKey = h24 * 60 + mins;
+      if (currentMinKey !== lastAlarmMinute) {
+        alarmFiredSet.clear();
+        lastAlarmMinute = currentMinKey;
+      }
+      const timeStr = `${String(h24).padStart(2, '0')}:${String(mins).padStart(2, '0')}`;
+      alarmItems.forEach(alarm => {
+        if (alarm.enabled && alarm.time === timeStr && !alarmFiredSet.has(alarm.id)) {
+          alarmFiredSet.add(alarm.id);
+          triggerAlarm(`⏰ ALARM ${formatAlarmTime(alarm.time)}`);
+        }
+      });
     }
 
     function updateTimerUI() {
@@ -3513,6 +3684,7 @@
 
       applyTimeScale();
       updateTimerUI();
+      checkClockAlarms(h24, Number(mins));
     }
 
     async function toggleFullscreen() {
@@ -3565,16 +3737,17 @@
       });
     }
 
-    function isTypingInTodo() {
+    function isTypingInInput() {
       const active = document.activeElement;
       if (!active) return false;
-      return active === todoInput || active.classList?.contains('todo-text');
+      return active === todoInput || active === alarmTimeInputEl || active.classList?.contains('todo-text');
     }
 
     function setMode(mode24) {
       use24Hour = mode24;
       btn12.classList.toggle('active', !use24Hour);
       btn24.classList.toggle('active', use24Hour);
+      renderAlarmChips();
       saveSettings();
       updateClock();
     }
@@ -3587,6 +3760,20 @@
     collapseCustomBtn.addEventListener('click', () => setPanelCollapsed(customPanel, !customPanel.classList.contains('collapsed'), expandCustomBtn));
     expandCustomBtn.addEventListener('click', () => setPanelCollapsed(customPanel, false, expandCustomBtn));
     alarmStopBtn.addEventListener('click', stopAlarm);
+    if (collapseAlarmBtn) collapseAlarmBtn.addEventListener('click', () => setPanelCollapsed(alarmPanelEl, !alarmPanelEl.classList.contains('collapsed'), expandAlarmBtn));
+    if (expandAlarmBtn) expandAlarmBtn.addEventListener('click', () => setPanelCollapsed(alarmPanelEl, false, expandAlarmBtn));
+    if (addAlarmChipBtn) addAlarmChipBtn.addEventListener('click', addAlarmChip);
+    if (alarmTimeInputEl) {
+      alarmTimeInputEl.addEventListener('keydown', (e) => {
+        if (e.key === 'Enter') { e.preventDefault(); addAlarmChip(); }
+      });
+    }
+    const alarmPickerBtn = document.getElementById('alarmPickerBtn');
+    if (alarmPickerBtn && alarmTimeInputEl) {
+      alarmPickerBtn.addEventListener('click', () => {
+        try { alarmTimeInputEl.showPicker(); } catch (e) {}
+      });
+    }
     if (collapseTodoBtn) collapseTodoBtn.addEventListener('click', () => setPanelCollapsed(todoPanel, true, expandTodoBtn));
     if (expandTodoBtn) expandTodoBtn.addEventListener('click', () => setPanelCollapsed(todoPanel, false, expandTodoBtn));
     if (addTodoBtn) addTodoBtn.addEventListener('click', addTodoItem);
@@ -3811,7 +3998,7 @@
 
     document.addEventListener('keydown', (e) => {
       const key = e.key.toLowerCase();
-      if (isTypingInTodo()) {
+      if (isTypingInInput()) {
         if (key === 'escape' && alarmActive) stopAlarm();
         return;
       }
@@ -3820,6 +4007,7 @@
       if (key === 'q') setPanelCollapsed(quickPanel, !quickPanel.classList.contains('collapsed'), expandQuickBtn);
       if (key === 'w') setPanelCollapsed(customPanel, !customPanel.classList.contains('collapsed'), expandCustomBtn);
       if (key === 'r' && todoPanel) setPanelCollapsed(todoPanel, !todoPanel.classList.contains('collapsed'), expandTodoBtn);
+      if (key === 'a' && alarmPanelEl) setPanelCollapsed(alarmPanelEl, !alarmPanelEl.classList.contains('collapsed'), expandAlarmBtn);
       if (key === 'escape' && alarmActive) stopAlarm();
     });
 
@@ -3841,6 +4029,9 @@
     }
     if (Array.isArray(savedSettings.todoItems)) {
       todoItems = savedSettings.todoItems.filter(item => item && typeof item.text === 'string').map(item => ({ text: item.text, done: !!item.done }));
+    }
+    if (Array.isArray(savedSettings.alarmItems)) {
+      alarmItems = savedSettings.alarmItems.filter(a => a && typeof a.time === 'string').map(a => ({ id: a.id || 'alarm-' + Date.now() + Math.random(), time: a.time, enabled: !!a.enabled }));
     }
     if (typeof savedSettings.showLunarDate === 'boolean') {
       showLunarDate = savedSettings.showLunarDate;
@@ -3881,6 +4072,10 @@
       setPanelCollapsed(todoPanel, savedSettings.todoCollapsed === true, expandTodoBtn);
       setupTodoResize();
     }
+    if (alarmPanelEl) {
+      setPanelCollapsed(alarmPanelEl, !!savedSettings.alarmCollapsed, expandAlarmBtn);
+    }
+    renderAlarmChips();
     renderTodoList();
     updateClock();
     setInterval(updateClock, 250);
