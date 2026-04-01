@@ -541,6 +541,7 @@
       text-shadow: none;
       line-height: 1;
     }
+    .time.rolex-style { overflow: visible; }
 
     .analog-svg {
       width: 100%;
@@ -2847,18 +2848,22 @@
         bezelFlutes += `<path d="${d}" fill="${i % 2 === 0 ? '#f2d255' : '#8c6c14'}"/>`;
       }
 
-      // ── Roman numerals I–XI (XII replaced by day window) ──
-      const romanNums = ['XII','I','II','III','IV','V','VI','VII','VIII','IX','X','XI'];
+      // ── Roman numerals I–XI (bigger, each rotated radially; XII→day window, III→date window, XI→I) ──
+      const romanNums = ['XII','I','II','III','IV','V','VI','VII','VIII','IX','X','I'];
+      //                                                                          ↑ position 11 shows I per user request
       let romans = '';
       for (let i = 1; i <= 11; i++) {
-        if (i === 3) continue; // III replaced by date window
-        romans += `<text x="${px(178, i * 30)}" y="${py(178, i * 30)}"
+        if (i === 3) continue; // replaced by date window
+        const a = i * 30;
+        const nx = parseFloat(px(178, a)), ny = parseFloat(py(178, a));
+        romans += `<text x="${nx.toFixed(2)}" y="${ny.toFixed(2)}"
           text-anchor="middle" dominant-baseline="central"
-          font-family="Georgia,'Times New Roman',serif" font-size="21" font-style="italic"
+          transform="rotate(${a},${nx.toFixed(2)},${ny.toFixed(2)})"
+          font-family="Georgia,'Times New Roman',serif" font-size="26" font-style="italic"
           fill="#d4a520">${romanNums[i]}</text>`;
       }
 
-      // ── Sword hand (polygon, tapers from wide shoulder near tip to slim tail) ──
+      // ── Sword hand (polygon) ──
       const swordHand = (angle, tipR, backR, w, color) => {
         const rad  = (angle - 90) * Math.PI / 180;
         const perp = rad + Math.PI / 2;
@@ -2878,12 +2883,43 @@
           fill="${color}" filter="url(#rShadow)"/>`;
       };
 
+      // ── President bracelet links ──
+      // Bracelet x: 163–337 (174px wide); lug connects at y≈18 (top) and y≈482 (bottom) on the bezel circle
+      const blx = 163, brx = 337, bw = brx - blx;
+      const lw = 40, rw = 40, gap = 2, cw = bw - lw - rw - gap * 2;
+
+      // 3-piece link row: narrow|wide|narrow
+      const threeLink = (y1, h) =>
+        `<rect x="${blx}"           y="${y1}" width="${lw}"  height="${h}" rx="3" fill="url(#rLinkV)" stroke="rgba(0,0,0,0.2)" stroke-width="0.7"/>` +
+        `<rect x="${blx+lw+gap}"    y="${y1}" width="${cw}"  height="${h}" rx="3" fill="url(#rLinkH)" stroke="rgba(0,0,0,0.2)" stroke-width="0.7"/>` +
+        `<rect x="${brx-rw}"        y="${y1}" width="${rw}"  height="${h}" rx="3" fill="url(#rLinkV)" stroke="rgba(0,0,0,0.2)" stroke-width="0.7"/>`;
+
+      // Wide single-piece link row
+      const wideLink = (y1, h) =>
+        `<rect x="${blx}" y="${y1}" width="${bw}" height="${h}" rx="3" fill="url(#rLinkH)" stroke="rgba(0,0,0,0.2)" stroke-width="0.7"/>` +
+        `<line x1="${blx+lw}" y1="${y1+2}" x2="${blx+lw}" y2="${y1+h-2}" stroke="rgba(0,0,0,0.12)" stroke-width="1"/>` +
+        `<line x1="${brx-rw}" y1="${y1+2}" x2="${brx-rw}" y2="${y1+h-2}" stroke="rgba(0,0,0,0.12)" stroke-width="1"/>`;
+
+      // Top bracelet – drawn BEFORE bezel so bezel covers lug joint
+      const topBracelet =
+        `<path d="M ${blx},18 L ${blx},-35 L ${brx},-35 L ${brx},18 A 248,248 0 0,0 ${blx},18 Z"
+               fill="#c8a020" stroke="rgba(0,0,0,0.08)" stroke-width="0.5"/>` +
+        threeLink(-38, 27) + wideLink(-68, 27) + threeLink(-98, 27) +
+        `<rect x="${blx}" y="-128" width="${bw}" height="14" rx="3" fill="url(#rLinkH)" stroke="rgba(0,0,0,0.2)" stroke-width="0.7"/>`;
+
+      // Bottom bracelet
+      const bottomBracelet =
+        `<path d="M ${blx},482 A 248,248 0 0,1 ${brx},482 L ${brx},535 L ${blx},535 Z"
+               fill="#c8a020" stroke="rgba(0,0,0,0.08)" stroke-width="0.5"/>` +
+        threeLink(538, 27) + wideLink(568, 27) + threeLink(598, 27) +
+        `<rect x="${blx}" y="628" width="${bw}" height="14" rx="3" fill="url(#rLinkH)" stroke="rgba(0,0,0,0.2)" stroke-width="0.7"/>`;
+
       timeEl.classList.add('rolex-style');
       timeEl.classList.remove('flip-style','led-style','led-green-style','led-blue-style',
         'led-orange-style','led-mixed-style','segment-style','analog-style');
 
       timeEl.innerHTML = `
-        <svg class="analog-svg" viewBox="0 0 500 500" xmlns="http://www.w3.org/2000/svg">
+        <svg class="analog-svg" viewBox="0 0 500 500" overflow="visible" xmlns="http://www.w3.org/2000/svg">
           <defs>
             <radialGradient id="rDial" cx="50%" cy="50%" r="50%">
               <stop offset="0%"   stop-color="#22d864"/>
@@ -2895,14 +2931,31 @@
               <stop offset="0%"   stop-color="#f0d060"/>
               <stop offset="100%" stop-color="#9a7818"/>
             </radialGradient>
+            <!-- Bracelet vertical gradient (narrow side links) -->
+            <linearGradient id="rLinkV" x1="0" y1="0" x2="0" y2="1">
+              <stop offset="0%"   stop-color="#f2cc48"/>
+              <stop offset="50%"  stop-color="#c49818"/>
+              <stop offset="100%" stop-color="#8a6808"/>
+            </linearGradient>
+            <!-- Bracelet horizontal gradient (wide center links), spans full bracelet width -->
+            <linearGradient id="rLinkH" x1="163" y1="0" x2="337" y2="0" gradientUnits="userSpaceOnUse">
+              <stop offset="0%"   stop-color="#9a7810"/>
+              <stop offset="28%"  stop-color="#f0cc40"/>
+              <stop offset="72%"  stop-color="#f0cc40"/>
+              <stop offset="100%" stop-color="#9a7810"/>
+            </linearGradient>
             <filter id="rShadow" x="-25%" y="-25%" width="150%" height="150%">
               <feDropShadow dx="1" dy="2" stdDeviation="2.5" flood-opacity="0.4"/>
             </filter>
           </defs>
 
-          <!-- Bezel base ring -->
+          <!-- ── BRACELET (drawn first so bezel covers the joint) ── -->
+          ${topBracelet}
+          ${bottomBracelet}
+
+          <!-- Bezel base ring (covers lug joint) -->
           <circle cx="250" cy="250" r="250" fill="url(#rBezelBase)"/>
-          <!-- Fluted segments -->
+          <!-- Fluted bezel segments -->
           ${bezelFlutes}
           <!-- Bezel inner lip -->
           <circle cx="250" cy="250" r="234" fill="none" stroke="#5a4408" stroke-width="2"/>
@@ -2912,17 +2965,18 @@
           <circle cx="250" cy="250" r="221" fill="url(#rDial)"/>
           <circle cx="250" cy="250" r="221" fill="none" stroke="rgba(0,0,0,0.5)" stroke-width="4"/>
 
-          <!-- Roman numerals -->
+          <!-- Roman numerals (rotated radially) -->
           ${romans}
 
-          <!-- DAY window at 12 o'clock -->
-          <rect x="208" y="73" width="84" height="27" rx="3" ry="3"
+          <!-- DAY window: arch-shaped top follows the bezel curvature -->
+          <path d="M 212,100 L 212,81 Q 250,67 288,81 L 288,100 Z"
                 fill="#f4f2eb" stroke="#c8a020" stroke-width="1.5"/>
-          <text x="250" y="87" text-anchor="middle" dominant-baseline="central"
+          <ellipse cx="250" cy="78" rx="30" ry="7" fill="rgba(255,255,255,0.45)"/>
+          <text x="250" y="91" text-anchor="middle" dominant-baseline="central"
                 font-family="'Arial Narrow',Arial,sans-serif" font-size="10" font-weight="700"
                 letter-spacing="0.8" fill="#111">${dayName}</text>
 
-          <!-- DATE window at 3 o'clock (replaces III, centred at r=178) -->
+          <!-- DATE window at 3 o'clock (replaces III) -->
           <rect x="406" y="232" width="46" height="36" rx="3" ry="3"
                 fill="#f4f2eb" stroke="#c8a020" stroke-width="2"/>
           <rect x="406" y="232" width="46" height="12" rx="3" ry="3"
