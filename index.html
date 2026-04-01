@@ -1528,6 +1528,11 @@
         overflow-x: hidden;
       }
 
+      /* Body: reset flex-centering so the app column flows from top */
+      body {
+        display: block;
+      }
+
       /* Root: vertical flex column */
       .app {
         height: auto;
@@ -1593,6 +1598,7 @@
         width: 100%;
         max-width: 100%;
         flex-direction: column;
+        flex-wrap: nowrap;        /* prevent horizontal wrapping */
         align-items: stretch;
         gap: 0;
         padding: 0 14px 12px;
@@ -3607,8 +3613,14 @@
     applyTheme(savedSettings.theme || 'dark');
     
     setMode(use24Hour);
-    setPanelCollapsed(quickPanel, !!savedSettings.quickCollapsed, expandQuickBtn);
-    setPanelCollapsed(customPanel, !!savedSettings.customCollapsed, expandCustomBtn);
+    if (isMobile()) {
+      // On mobile the expand FABs are hidden, so always show timer panels
+      quickPanel.classList.remove('collapsed');
+      customPanel.classList.remove('collapsed');
+    } else {
+      setPanelCollapsed(quickPanel, !!savedSettings.quickCollapsed, expandQuickBtn);
+      setPanelCollapsed(customPanel, !!savedSettings.customCollapsed, expandCustomBtn);
+    }
     if (todoPanel) {
       if (typeof savedSettings.todoWidth === 'string' && savedSettings.todoWidth) todoPanel.style.width = savedSettings.todoWidth;
       if (typeof savedSettings.todoHeight === 'string' && savedSettings.todoHeight) todoPanel.style.height = savedSettings.todoHeight;
