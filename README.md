@@ -16,7 +16,7 @@ A fullscreen web clock with large display styles, floating timers, world clocks,
     - **Decoupled Visibility**: Toggle each element (Date, Lunar, TZ) independently.
 - **Expanded World Clocks**: Live pinned clocks for New York, London, Beijing, **Tokyo (JST)**, **Paris (CET)**, and **Denver (MST/MDT)**.
     - Includes timezone abbreviations for each city.
-- **Multiple Clock Styles**: Default, LED Neon Green/Blue/Orange, Mixed Neon, 7-Segment, Flip Clock, Retro Tech, and **Analog Classic** (SVG wall-clock face with Arabic numerals, black hour/minute hands, and a sweeping red second hand).
+- **Multiple Clock Styles**: Default, LED Neon Green/Blue/Orange, Mixed Neon, 7-Segment, Flip Clock, Retro Tech, **Analog Classic** (SVG wall-clock face with Arabic numerals, black hour/minute hands, and a sweeping red second hand), and **Rolex Day-Date** (faithful SVG recreation of the Day-Date 40 ref. 228238 — green ombré sunburst dial, 44-segment fluted gold bezel, upright gold Roman numerals rotated radially, arch-shaped day-of-week aperture with arced lettering, date window at 3 o'clock, gold sword hands, Rolex inscriptions, and a full President bracelet above and below the case).
 - **Premium Built-in Themes**: 
     - **Dark (Default)**: Classic minimalist deep black.
     - **Midnight Blue / Deep Forest**: Elegant dark gradients.
@@ -26,7 +26,7 @@ A fullscreen web clock with large display styles, floating timers, world clocks,
     - **Elegant Marble**: High-end white marble (features **Smart Light-Mode** which automatically inverts text for readability).
     - **Custom Image Background**: Upload your own image via the sub-menu.
 - **Adjustable Display**: Scale the main clock size, or adjust UI panel opacity.
-- **Interactive To-Do List**: Built-in floating to-do list featuring native **HTML5 Drag & Drop sorting** and one-click removal.
+- **Interactive To-Do List**: Built-in floating to-do list featuring native **HTML5 Drag & Drop sorting**, one-click item removal, and a **Clear All** button (🗑) with confirmation to wipe the entire list.
 - **Floating Timers**: Persistent quick timer presets (1 min → 3 hr), plus a custom minutes/seconds timer with pause, resume, and clear.
 - **Alarm Customizations**: Choose between Default, Digital Beep, or Marimba. Features an auto-firing screen shake effect and an alarm stop modal.
 - **Auto-Hiding Menus**: The settings menu cleanly tucks itself into a capsule icon when your mouse leaves the area.
