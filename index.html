@@ -3012,10 +3012,10 @@
                 font-family="Arial,sans-serif" font-size="6" letter-spacing="0.8"
                 fill="#6a8858" opacity="0.85">OFFICIALLY CERTIFIED</text>
 
-          <!-- SWISS MADE -->
-          <text x="250" y="398" text-anchor="middle" dominant-baseline="central"
+          <!-- SWISS ♛ MADE (below VI at y=428) -->
+          <text x="250" y="460" text-anchor="middle" dominant-baseline="central"
                 font-family="Arial,sans-serif" font-size="6.5" letter-spacing="1.5"
-                fill="#6a8858" opacity="0.8">SWISS MADE</text>
+                fill="#6a8858" opacity="0.8">SWISS ♛ MADE</text>
 
           <!-- Hour hand -->
           ${swordHand(hourAngle, 130, 26, 13, '#d4a520')}
@@ -3204,12 +3204,18 @@
         if (dateInfoEl) dateInfoEl.style.top = '';
       } else {
         const timeRectAfter = timeEl.getBoundingClientRect();
+        // For the Rolex style the bracelet overflows the element bounds via SVG overflow:visible.
+        // Add extra clearance so date/yt info clears the top strap and world clocks clear the bottom strap.
+        // Top bracelet extends ~130 SVG units above the element; bottom ~142 units below.
+        const isRolex = clockStyleSelect.value === 'rolex';
+        const extraTop    = isRolex ? 130 * finalScale : 0;
+        const extraBottom = isRolex ? 142 * finalScale : 0;
         if (wcEl) {
           wcEl.style.display = showWorldClock ? 'flex' : 'none';
-          wcEl.style.top = `${timeRectAfter.bottom + 20}px`;
+          wcEl.style.top = `${timeRectAfter.bottom + extraBottom + 20}px`;
         }
         if (dateInfoEl) {
-          dateInfoEl.style.top = `${Math.max(90, timeRectAfter.top - 16)}px`;
+          dateInfoEl.style.top = `${Math.max(90, timeRectAfter.top - extraTop - 16)}px`;
         }
       }
 
