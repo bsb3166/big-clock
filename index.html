@@ -2851,6 +2851,7 @@
       const romanNums = ['XII','I','II','III','IV','V','VI','VII','VIII','IX','X','XI'];
       let romans = '';
       for (let i = 1; i <= 11; i++) {
+        if (i === 3) continue; // III replaced by date window
         romans += `<text x="${px(178, i * 30)}" y="${py(178, i * 30)}"
           text-anchor="middle" dominant-baseline="central"
           font-family="Georgia,'Times New Roman',serif" font-size="21" font-style="italic"
@@ -2921,12 +2922,12 @@
                 font-family="'Arial Narrow',Arial,sans-serif" font-size="10" font-weight="700"
                 letter-spacing="0.8" fill="#111">${dayName}</text>
 
-          <!-- DATE window at 3 o'clock -->
-          <rect x="374" y="231" width="44" height="38" rx="3" ry="3"
+          <!-- DATE window at 3 o'clock (replaces III, centred at r=178) -->
+          <rect x="406" y="232" width="46" height="36" rx="3" ry="3"
                 fill="#f4f2eb" stroke="#c8a020" stroke-width="2"/>
-          <rect x="374" y="231" width="44" height="13" rx="3" ry="3"
-                fill="rgba(255,255,255,0.5)"/>
-          <text x="396" y="252" text-anchor="middle" dominant-baseline="central"
+          <rect x="406" y="232" width="46" height="12" rx="3" ry="3"
+                fill="rgba(255,255,255,0.55)"/>
+          <text x="429" y="252" text-anchor="middle" dominant-baseline="central"
                 font-family="'Arial Narrow',Arial,sans-serif" font-size="20" font-weight="700"
                 fill="#111">${dateNum}</text>
 
