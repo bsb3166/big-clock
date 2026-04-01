@@ -2944,6 +2944,8 @@
               <stop offset="72%"  stop-color="#f0cc40"/>
               <stop offset="100%" stop-color="#9a7810"/>
             </linearGradient>
+            <!-- Arc path for day-name text (follows the window arch) -->
+            <path id="rDayArc" d="M 216,91 Q 250,79 284,91"/>
             <filter id="rShadow" x="-25%" y="-25%" width="150%" height="150%">
               <feDropShadow dx="1" dy="2" stdDeviation="2.5" flood-opacity="0.4"/>
             </filter>
@@ -2972,9 +2974,11 @@
           <path d="M 212,100 L 212,81 Q 250,67 288,81 L 288,100 Z"
                 fill="#f4f2eb" stroke="#c8a020" stroke-width="1.5"/>
           <ellipse cx="250" cy="78" rx="30" ry="7" fill="rgba(255,255,255,0.45)"/>
-          <text x="250" y="91" text-anchor="middle" dominant-baseline="central"
-                font-family="'Arial Narrow',Arial,sans-serif" font-size="10" font-weight="700"
-                letter-spacing="0.8" fill="#111">${dayName}</text>
+          <!-- Day name arced along the window arch -->
+          <text font-family="'Arial Narrow',Arial,sans-serif" font-size="9.5" font-weight="700"
+                letter-spacing="0.8" fill="#111">
+            <textPath href="#rDayArc" startOffset="50%" text-anchor="middle">${dayName}</textPath>
+          </text>
 
           <!-- DATE window at 3 o'clock (replaces III) -->
           <rect x="406" y="232" width="46" height="36" rx="3" ry="3"
