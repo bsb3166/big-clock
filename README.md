@@ -16,7 +16,7 @@ A fullscreen web clock with large display styles, floating timers, world clocks,
     - **Decoupled Visibility**: Toggle each element (Date, Lunar, TZ) independently.
 - **Expanded World Clocks**: Live pinned clocks for New York, London, Beijing, **Tokyo (JST)**, **Paris (CET)**, and **Denver (MST/MDT)**.
     - Includes timezone abbreviations for each city.
-- **Multiple Clock Styles**: Default, LED Neon Green/Blue/Orange, Mixed Neon, 7-Segment, Flip Clock, and Retro Tech.
+- **Multiple Clock Styles**: Default, LED Neon Green/Blue/Orange, Mixed Neon, 7-Segment, Flip Clock, Retro Tech, and **Analog Classic** (SVG wall-clock face with Arabic numerals, black hour/minute hands, and a sweeping red second hand).
 - **Premium Built-in Themes**: 
     - **Dark (Default)**: Classic minimalist deep black.
     - **Midnight Blue / Deep Forest**: Elegant dark gradients.
@@ -27,11 +27,12 @@ A fullscreen web clock with large display styles, floating timers, world clocks,
     - **Custom Image Background**: Upload your own image via the sub-menu.
 - **Adjustable Display**: Scale the main clock size, or adjust UI panel opacity.
 - **Interactive To-Do List**: Built-in floating to-do list featuring native **HTML5 Drag & Drop sorting** and one-click removal.
-- **Floating Timers**: Persistent quick timer presets, plus a custom hours/minutes timer.
+- **Floating Timers**: Persistent quick timer presets (1 min → 3 hr), plus a custom minutes/seconds timer with pause, resume, and clear.
 - **Alarm Customizations**: Choose between Default, Digital Beep, or Marimba. Features an auto-firing screen shake effect and an alarm stop modal.
 - **Auto-Hiding Menus**: The settings menu cleanly tucks itself into a capsule icon when your mouse leaves the area.
 - **iOS-Style Toggles**: Premium toggle switches in the settings bar for all major sections (YouTube, Date, Lunar, TZ, World Clock).
 - **Local Persistence**: Remembers literally everything contextually (clock style, theme, custom background, sounds, active to-dos, panel opacities, and collapsed states).
+- **Mobile Portrait (竖屏) Support**: Fully responsive layout for phones — sticky settings header, stacked panels, compact quick-timer chips, and collapsible timer panels with an in-panel +/− toggle.
 
 ## Controls / Hotkeys
 
