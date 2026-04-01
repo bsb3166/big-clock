@@ -2054,6 +2054,7 @@
       <div class="todo-resize-handle r-edge" data-resize="r"></div>
       <div class="todo-header">
         <div class="todo-title">To-do list (R)</div>
+        <button class="mini-toggle" id="clearTodoBtn" type="button" title="Clear all items" style="font-size:13px;">🗑</button>
         <button class="mini-toggle" id="collapseTodoBtn" type="button">−</button>
       </div>
       <div class="todo-input-row">
@@ -3589,6 +3590,15 @@
     if (collapseTodoBtn) collapseTodoBtn.addEventListener('click', () => setPanelCollapsed(todoPanel, true, expandTodoBtn));
     if (expandTodoBtn) expandTodoBtn.addEventListener('click', () => setPanelCollapsed(todoPanel, false, expandTodoBtn));
     if (addTodoBtn) addTodoBtn.addEventListener('click', addTodoItem);
+    const clearTodoBtn = document.getElementById('clearTodoBtn');
+    if (clearTodoBtn) clearTodoBtn.addEventListener('click', () => {
+      if (todoItems.length === 0) return;
+      if (confirm('Clear all to-do items?')) {
+        todoItems = [];
+        renderTodoList();
+        saveSettings();
+      }
+    });
     if (todoInput) todoInput.addEventListener('keydown', (e) => {
       if (e.key === 'Enter' && !e.shiftKey) {
         e.preventDefault();
