@@ -27,7 +27,8 @@ A fullscreen web clock with large display styles, floating timers, world clocks,
     - **Custom Image Background**: Upload your own image via the sub-menu.
 - **Adjustable Display**: Scale the main clock size, or adjust UI panel opacity.
 - **Interactive To-Do List**: Built-in floating to-do list featuring native **HTML5 Drag & Drop sorting**, one-click item removal, and a **Clear All** button (🗑) with confirmation to wipe the entire list.
-- **Floating Timers**: Persistent quick timer presets (1 min → 3 hr), plus a custom minutes/seconds timer with pause, resume, and clear.
+- **Floating Timers**: Persistent quick timer presets (1 min → 3 hr) with toggle-off on second click, plus a custom minutes/seconds timer with pause, resume, and clear.
+- **Alarm Panel**: Dedicated alarm panel (hotkey `A`) for setting clock-based alarms — create time chips via typing or the 🕐 picker button, toggle alarms on/off by clicking, delete individual alarms, and time display respects the 12/24hr mode. Uses the same alarm sound and shake effect as the timer. Fully persistent across sessions.
 - **Alarm Customizations**: Choose between Default, Digital Beep, or Marimba. Features an auto-firing screen shake effect and an alarm stop modal.
 - **Auto-Hiding Menus**: The settings menu cleanly tucks itself into a capsule icon when your mouse leaves the area.
 - **iOS-Style Toggles**: Premium toggle switches in the settings bar for all major sections (YouTube, Date, Lunar, TZ, World Clock).
@@ -42,6 +43,7 @@ A fullscreen web clock with large display styles, floating timers, world clocks,
 
 ### Panel Controls
 - `Q` — Toggle Quick Timers panel (Hint: **Quick timers (Q)**)
+- `A` — Toggle Alarms panel (Hint: **Alarms (A)**)
 - `W` — Toggle Custom Timer panel (Hint: **Custom timer (W)**)
 - `R` — Toggle To-Do List panel (Hint: **To-do list (R)**)
 
