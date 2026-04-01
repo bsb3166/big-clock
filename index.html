@@ -532,7 +532,8 @@
     }
 
     .time.analog-style,
-    .time.rolex-style {
+    .time.rolex-style,
+    .time.dotmatrix-style {
       display: block;
       width: 500px;
       height: 500px;
@@ -1888,6 +1889,7 @@
           <option value="retro">Retro tech</option>
           <option value="analog">Analog Classic</option>
           <option value="rolex">Rolex Day-Date</option>
+          <option value="dotmatrix">Dot Matrix</option>
         </select>
         <div class="custom-dropdown" id="clockStyleDropdown">
           <button class="dropdown-trigger" id="clockStyleTrigger" type="button">Default</button>
@@ -1902,6 +1904,7 @@
             <div class="dropdown-item" data-value="retro">Retro tech</div>
             <div class="dropdown-item" data-value="analog">Analog Classic</div>
             <div class="dropdown-item" data-value="rolex">Rolex Day-Date</div>
+            <div class="dropdown-item" data-value="dotmatrix">Dot Matrix</div>
           </div>
         </div>
       </div>
@@ -2644,6 +2647,12 @@
           spacing: '0',
           weight: '400',
           transform: 'none'
+        },
+        dotmatrix: {
+          font: 'Inter, "Segoe UI", Roboto, Helvetica, Arial, sans-serif',
+          spacing: '0',
+          weight: '700',
+          transform: 'none'
         }
       };
       const chosen = styleMap[styleKey] || styleMap.default;
@@ -2735,7 +2744,7 @@
       const hourChars = hoursText.padStart(2, ' ').split('');
       const minuteChars = minutesText.padStart(2, '0').split('');
       timeEl.classList.add('segment-style');
-      timeEl.classList.remove('flip-style', 'led-style', 'led-green-style', 'led-blue-style', 'led-orange-style', 'analog-style', 'rolex-style');
+      timeEl.classList.remove('flip-style', 'led-style', 'led-green-style', 'led-blue-style', 'led-orange-style', 'analog-style', 'rolex-style', 'dotmatrix-style');
       timeEl.innerHTML = `
         ${renderSegmentDigit(hourChars[0])}
         ${renderSegmentDigit(hourChars[1])}
@@ -2779,7 +2788,7 @@
     }
 
     function renderStandardClock(hoursText, minutesText, ampmText) {
-      timeEl.classList.remove('flip-style', 'led-style', 'led-green-style', 'led-blue-style', 'led-orange-style', 'led-mixed-style', 'segment-style', 'analog-style', 'rolex-style');
+      timeEl.classList.remove('flip-style', 'led-style', 'led-green-style', 'led-blue-style', 'led-orange-style', 'led-mixed-style', 'segment-style', 'analog-style', 'rolex-style', 'dotmatrix-style');
       if (clockStyleSelect.value === 'led-green') {
         timeEl.classList.add('led-style', 'led-green-style');
       }
@@ -2815,7 +2824,7 @@
       const minuteChars = minutesText.padStart(2, '0').split('');
       const hourPair = `${hourChars[0] === ' ' ? '&nbsp;' : hourChars[0]}${hourChars[1]}`;
       timeEl.classList.add('flip-style');
-      timeEl.classList.remove('led-style', 'led-green-style', 'led-blue-style', 'led-orange-style', 'segment-style', 'analog-style', 'rolex-style');
+      timeEl.classList.remove('led-style', 'led-green-style', 'led-blue-style', 'led-orange-style', 'segment-style', 'analog-style', 'rolex-style', 'dotmatrix-style');
       timeEl.innerHTML = `
         <span class="flip-card"><span style="position:absolute;top:0.12em;left:0.16em;font-size:0.18em;letter-spacing:0.08em;opacity:0.72;">${use24Hour ? '' : ampmText}</span>${hourPair}</span>
         <span class="flip-colon colon" id="colon">:</span>
@@ -2870,7 +2879,7 @@
 
       timeEl.classList.add('analog-style');
       timeEl.classList.remove('flip-style', 'led-style', 'led-green-style', 'led-blue-style',
-        'led-orange-style', 'led-mixed-style', 'segment-style', 'rolex-style');
+        'led-orange-style', 'led-mixed-style', 'segment-style', 'rolex-style', 'dotmatrix-style');
 
       timeEl.innerHTML = `
         <svg class="analog-svg" viewBox="0 0 500 500" xmlns="http://www.w3.org/2000/svg">
@@ -2913,6 +2922,162 @@
           <!-- Center cap -->
           <circle cx="250" cy="250" r="10" fill="#b8b8b8" stroke="#888" stroke-width="1.5"/>
           <circle cx="250" cy="250" r="5"  fill="#e02020"/>
+        </svg>`;
+    }
+
+    function renderDotMatrixClock(h24, mins, secs, ms) {
+      const cx = 250, cy = 250;
+      const hours = h24 % 12;
+
+      // 5×7 dot matrix font for digits 0-9 and colon
+      const dotFont = {
+        '0': [0x0E,0x11,0x13,0x15,0x19,0x11,0x0E],
+        '1': [0x04,0x0C,0x04,0x04,0x04,0x04,0x0E],
+        '2': [0x0E,0x11,0x01,0x02,0x04,0x08,0x1F],
+        '3': [0x1F,0x02,0x04,0x02,0x01,0x11,0x0E],
+        '4': [0x02,0x06,0x0A,0x12,0x1F,0x02,0x02],
+        '5': [0x1F,0x10,0x1E,0x01,0x01,0x11,0x0E],
+        '6': [0x06,0x08,0x10,0x1E,0x11,0x11,0x0E],
+        '7': [0x1F,0x01,0x02,0x04,0x08,0x08,0x08],
+        '8': [0x0E,0x11,0x11,0x0E,0x11,0x11,0x0E],
+        '9': [0x0E,0x11,0x11,0x0F,0x01,0x02,0x0C],
+        ':': [0x00,0x04,0x04,0x00,0x04,0x04,0x00]
+      };
+
+      const dotR = 4.5;       // dot radius
+      const dotGap = 13;      // center-to-center spacing
+      const onColor = '#00e840';
+      const offColor = 'rgba(0,80,20,0.25)';
+      const glowFilter = 'dmGlow';
+
+      // Build a character at grid position, returns SVG circles
+      function drawChar(ch, gridX, gridY, scale) {
+        const s = scale || 1;
+        const pattern = dotFont[ch];
+        if (!pattern) return '';
+        let svg = '';
+        for (let row = 0; row < 7; row++) {
+          for (let col = 0; col < 5; col++) {
+            const on = (pattern[row] >> (4 - col)) & 1;
+            const x = gridX + col * dotGap * s;
+            const y = gridY + row * dotGap * s;
+            svg += `<circle cx="${x.toFixed(1)}" cy="${y.toFixed(1)}" r="${(dotR * s).toFixed(1)}" fill="${on ? onColor : offColor}"${on ? ` filter="url(#${glowFilter})"` : ''}/>`;
+          }
+        }
+        return svg;
+      }
+
+      // Format time string
+      const hoursText = use24Hour ? String(h24).padStart(2, '0') : String(h24 % 12 || 12).padStart(2, ' ');
+      const minsText = String(mins).padStart(2, '0');
+      const secsText = String(secs).padStart(2, '0');
+
+      // Layout: HH:MM centered, seconds smaller below
+      // Each char is 5 dots wide × dotGap = 65px, plus spacing
+      const charW = 5 * dotGap;
+      const colonW = 5 * dotGap;
+      const gap = 8;
+      const totalW = charW * 4 + colonW + gap * 4;
+      const startX = cx - totalW / 2;
+      const mainY = cy - 46;
+
+      let digitsSvg = '';
+      let xOff = startX;
+      // Hour digit 1
+      const h1 = hoursText[0];
+      if (h1 !== ' ') digitsSvg += drawChar(h1, xOff, mainY, 1);
+      xOff += charW + gap;
+      // Hour digit 2
+      digitsSvg += drawChar(hoursText[1], xOff, mainY, 1);
+      xOff += charW + gap;
+      // Colon (blink)
+      const colonOn = secs % 2 === 0;
+      if (colonOn) digitsSvg += drawChar(':', xOff, mainY, 1);
+      else {
+        // Draw dim colon dots
+        const pattern = dotFont[':'];
+        for (let row = 0; row < 7; row++) {
+          for (let col = 0; col < 5; col++) {
+            const x = xOff + col * dotGap;
+            const y = mainY + row * dotGap;
+            digitsSvg += `<circle cx="${x.toFixed(1)}" cy="${y.toFixed(1)}" r="${dotR.toFixed(1)}" fill="${offColor}"/>`;
+          }
+        }
+      }
+      xOff += colonW + gap;
+      // Min digit 1
+      digitsSvg += drawChar(minsText[0], xOff, mainY, 1);
+      xOff += charW + gap;
+      // Min digit 2
+      digitsSvg += drawChar(minsText[1], xOff, mainY, 1);
+
+      // Seconds (smaller, centered below)
+      const secScale = 0.6;
+      const secCharW = 5 * dotGap * secScale;
+      const secGap = 5;
+      const secTotalW = secCharW * 2 + secGap;
+      const secStartX = cx - secTotalW / 2;
+      const secY = mainY + 7 * dotGap + 24;
+      digitsSvg += drawChar(secsText[0], secStartX, secY, secScale);
+      digitsSvg += drawChar(secsText[1], secStartX + secCharW + secGap, secY, secScale);
+
+      // AM/PM indicator (small, only in 12hr mode)
+      let ampmSvg = '';
+      if (!use24Hour) {
+        const ampm = h24 >= 12 ? 'PM' : 'AM';
+        const ampmX = xOff + charW + 6;
+        const ampmY = mainY + 2;
+        ampmSvg = `<text x="${ampmX}" y="${ampmY}" font-size="14" font-weight="700" fill="${onColor}" filter="url(#${glowFilter})" font-family="monospace">${ampm}</text>`;
+      }
+
+      // Seconds ring — 60 dots around the perimeter
+      const ringR = 225;
+      const ringDotR = 5;
+      let ringSvg = '';
+      for (let i = 0; i < 60; i++) {
+        const angle = (i * 6 - 90) * Math.PI / 180;
+        const dx = cx + ringR * Math.cos(angle);
+        const dy = cy + ringR * Math.sin(angle);
+        const isHourMark = i % 5 === 0;
+        const isLit = i <= secs;
+        let color, r;
+        if (isHourMark) {
+          color = '#ee2222';
+          r = ringDotR + 1.5;
+        } else if (isLit) {
+          color = onColor;
+          r = ringDotR;
+        } else {
+          color = 'rgba(0,80,20,0.2)';
+          r = ringDotR;
+        }
+        const useGlow = isHourMark || isLit;
+        ringSvg += `<circle cx="${dx.toFixed(1)}" cy="${dy.toFixed(1)}" r="${r}" fill="${color}"${useGlow ? ` filter="url(#${glowFilter})"` : ''}/>`;
+      }
+
+      timeEl.classList.add('dotmatrix-style');
+      timeEl.classList.remove('analog-style', 'flip-style', 'led-style', 'led-green-style',
+        'led-blue-style', 'led-orange-style', 'led-mixed-style', 'segment-style', 'rolex-style');
+
+      timeEl.innerHTML = `
+        <svg class="analog-svg" viewBox="0 0 500 500" xmlns="http://www.w3.org/2000/svg">
+          <defs>
+            <filter id="${glowFilter}" x="-50%" y="-50%" width="200%" height="200%">
+              <feGaussianBlur in="SourceGraphic" stdDeviation="3" result="blur"/>
+              <feMerge>
+                <feMergeNode in="blur"/>
+                <feMergeNode in="SourceGraphic"/>
+              </feMerge>
+            </filter>
+          </defs>
+          <!-- Background circle -->
+          <circle cx="${cx}" cy="${cy}" r="245" fill="#0a0f0a" stroke="rgba(0,180,60,0.08)" stroke-width="2"/>
+          <!-- Seconds ring -->
+          ${ringSvg}
+          <!-- Time digits -->
+          ${digitsSvg}
+          <!-- AM/PM -->
+          ${ampmSvg}
         </svg>`;
     }
 
@@ -3011,7 +3176,7 @@
 
       timeEl.classList.add('rolex-style');
       timeEl.classList.remove('flip-style','led-style','led-green-style','led-blue-style',
-        'led-orange-style','led-mixed-style','segment-style','analog-style');
+        'led-orange-style','led-mixed-style','segment-style','analog-style','dotmatrix-style');
 
       timeEl.innerHTML = `
         <svg class="analog-svg" viewBox="0 0 500 500" overflow="visible" xmlns="http://www.w3.org/2000/svg">
@@ -3627,6 +3792,8 @@
         renderAnalogClock(h24, now.getMinutes(), secs, now.getMilliseconds());
       } else if (clockStyleSelect.value === 'rolex') {
         renderRolexClock(h24, now.getMinutes(), secs, now.getMilliseconds());
+      } else if (clockStyleSelect.value === 'dotmatrix') {
+        renderDotMatrixClock(h24, now.getMinutes(), secs, now.getMilliseconds());
       } else if (clockStyleSelect.value === 'flip') {
         renderFlipClock(hoursText, mins, ampmText);
       } else if (clockStyleSelect.value === 'segment') {
@@ -3636,7 +3803,7 @@
       }
 
       const colonNode = document.getElementById('colon');
-      if (colonNode && clockStyleSelect.value !== 'segment' && clockStyleSelect.value !== 'analog' && clockStyleSelect.value !== 'rolex')
+      if (colonNode && clockStyleSelect.value !== 'segment' && clockStyleSelect.value !== 'analog' && clockStyleSelect.value !== 'rolex' && clockStyleSelect.value !== 'dotmatrix')
         colonNode.classList.toggle('off', secs % 2 === 1);
 
       const dateFmt = new Intl.DateTimeFormat(undefined, {
