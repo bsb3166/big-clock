@@ -3781,9 +3781,13 @@
 
     presetButtons.forEach(btn => {
       btn.addEventListener('click', () => {
-        clearPresetSelection();
-        btn.classList.add('active');
-        startTimer(Number(btn.dataset.minutes) * 60 * 1000);
+        if (btn.classList.contains('active')) {
+          clearTimer(); // already calls clearPresetSelection + stops alarm
+        } else {
+          clearPresetSelection();
+          btn.classList.add('active');
+          startTimer(Number(btn.dataset.minutes) * 60 * 1000);
+        }
       });
     });
 
