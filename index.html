@@ -1521,37 +1521,33 @@
        ══════════════════════════════════════════ */
     @media (max-width: 600px) {
 
-      /* Allow the page to scroll */
+      /* Scroll happens on .app so position:sticky works reliably */
       html, body {
-        height: auto;
-        overflow-y: auto;
-        overflow-x: hidden;
-      }
-
-      /* Body: reset flex-centering so the app column flows from top */
-      body {
+        height: 100%;
+        overflow: hidden;
         display: block;
       }
 
-      /* Root: vertical flex column */
+      /* Root: scrollable vertical flex column */
       .app {
-        height: auto;
-        min-height: 100svh;
-        overflow: visible;
+        height: 100%;
+        overflow-y: auto;
+        overflow-x: hidden;
         padding: 0;
         display: flex;
         flex-direction: column;
         align-items: stretch;
       }
 
-      /* ── Settings header – sticky at top ── */
+      /* ── Settings header – sticky within .app scroll ── */
+      /* Use !important to beat the base absolute positioning */
       .topbar-wrapper {
-        position: sticky;
-        top: 0;
-        left: auto;
-        transform: none;
+        position: sticky !important;
+        top: 0 !important;
+        left: auto !important;
+        transform: none !important;
         z-index: 30;
-        width: 100%;
+        width: 100% !important;
         padding: 0;
         flex-direction: column;
         align-items: stretch;
@@ -1580,8 +1576,7 @@
       .topbar-wrapper.mob-open .topbar-icon::after {
         content: '▴';
       }
-
-      /* Override desktop hover-hide of icon */
+      /* Never hide icon on mobile */
       .topbar-wrapper:hover .topbar-icon,
       .topbar-wrapper:focus-within .topbar-icon {
         opacity: 1 !important;
@@ -1589,41 +1584,46 @@
         pointer-events: auto !important;
       }
 
-      /* Settings panel – hidden until .mob-open */
+      /* ── Settings panel ──
+         Use !important on positioning to beat the desktop
+         hover/focus-within rules which have higher specificity (0,2,0)
+         and apply a translateX(-50%) that shifts content off-screen. */
       .topbar {
-        display: none;
-        position: static;
-        transform: none;
-        left: auto;
-        width: 100%;
-        max-width: 100%;
-        flex-direction: column;
-        flex-wrap: nowrap;        /* prevent horizontal wrapping */
-        align-items: stretch;
+        display: none !important;
+        position: static !important;
+        transform: none !important;
+        left: auto !important;
+        width: 100% !important;
+        max-width: 100% !important;
+        flex-direction: column !important;
+        flex-wrap: nowrap !important;
+        align-items: stretch !important;
         gap: 0;
         padding: 0 14px 12px;
         border-top: 1px solid var(--panel-border);
-        opacity: 1;
-        visibility: visible;
-        transition: none;
+        opacity: 1 !important;
+        visibility: visible !important;
+        transition: none !important;
       }
-      /* Prevent desktop hover from opening panel on mobile */
+      /* Desktop hover must NOT show the panel on mobile */
       .topbar-wrapper:hover .topbar,
       .topbar-wrapper:focus-within .topbar {
-        display: none;
+        display: none !important;
+        transform: none !important;
       }
-      /* Only .mob-open shows it */
+      /* Only tap-toggle (.mob-open) reveals the panel */
       .topbar-wrapper.mob-open .topbar {
         display: flex !important;
+        transform: none !important;
       }
 
-      /* Row items inside settings panel */
+      /* Settings rows: full-width, vertical stack */
       .topbar button {
         padding: 12px 14px;
         border-radius: 12px;
         flex: 1;
       }
-      .topbar .divider { display: none; }
+      .topbar .divider { display: none !important; }
       .topbar .slider-wrap,
       .topbar .ios-toggle-wrap {
         width: 100%;
@@ -1631,11 +1631,12 @@
         padding: 10px 0;
         border-bottom: 1px solid rgba(255,255,255,0.06);
       }
-      /* Dropdown menus inside settings panel */
+      /* Dropdown menus: fixed overlay so they clear the panel */
       .topbar .dropdown-menu {
-        position: fixed;
+        position: fixed !important;
         left: 14px;
         right: 14px;
+        top: auto;
         width: auto;
         min-width: 0;
         max-height: 55vh;
@@ -1647,20 +1648,16 @@
         margin: 4px 0 0 8px;
         border-radius: 10px;
       }
-      .topbar .has-submenu:hover .dropdown-submenu {
-        display: none; /* disable hover on mobile – use .submenu-open */
-      }
-      .topbar .has-submenu.submenu-open .dropdown-submenu {
-        display: flex;
-      }
+      .topbar .has-submenu:hover .dropdown-submenu { display: none; }
+      .topbar .has-submenu.submenu-open .dropdown-submenu { display: flex; }
 
-      /* ── Clock area ── */
+      /* ── Clock area: in flex flow, compact height ── */
       .center {
-        position: relative;
-        inset: auto;
+        position: relative !important;
+        inset: auto !important;
         width: 100%;
-        height: min(44vw, 250px);
-        min-height: 140px;
+        height: min(52vw, 280px);
+        min-height: 150px !important;
         flex-shrink: 0;
         z-index: 1;
       }
@@ -1680,7 +1677,7 @@
         pointer-events: auto;
       }
       .yt-music-bar {
-        width: 100%;
+        width: 100% !important;
         min-width: 0;
         border-radius: 16px;
         flex-wrap: wrap;
@@ -1717,14 +1714,38 @@
         position: static !important;
         width: auto !important;
         max-width: none;
-        max-height: none;
+        max-height: none !important;
+        overflow: visible !important;
         margin: 10px 14px 0;
       }
-      .collapsed-fab                { display: none !important; }
-      .floating-panel.collapsed     { display: none !important; }
-      .preset-grid {
-        grid-template-columns: repeat(3, minmax(0, 1fr));
+      .quick-scroll { overflow-y: visible; max-height: none; }
+      .collapsed-fab { display: none !important; }
+
+      /* Collapsed on mobile: show just the header strip (not hidden) */
+      .floating-panel.collapsed { display: flex !important; opacity: 1 !important; transform: none !important; pointer-events: auto !important; }
+      .floating-panel.collapsed .quick-scroll,
+      .floating-panel.collapsed .timer-large,
+      .floating-panel.collapsed .status,
+      .floating-panel.collapsed .meta,
+      .floating-panel.collapsed .custom-block,
+      .floating-panel.collapsed .action-row { display: none !important; }
+      .floating-panel.collapsed .panel-header { justify-content: center; gap: 0; }
+      .floating-panel.collapsed .panel-title  { display: none; }
+
+      /* Chips: compact horizontal rows instead of square tiles */
+      .preset-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; }
+      .chip {
+        aspect-ratio: auto !important;
+        flex-direction: row !important;
+        justify-content: flex-start !important;
+        align-items: center !important;
+        padding: 10px 10px !important;
+        gap: 6px;
+        min-height: 44px;
+        border-radius: 12px !important;
       }
+      .chip strong { font-size: 13px !important; }
+      .chip span   { font-size: 10px !important; margin-top: 0 !important; opacity: 0.7; }
 
       /* ── To-do panel ── */
       .todo-panel {
@@ -1740,11 +1761,7 @@
         margin: 10px 14px;
         resize: none;
       }
-      .todo-panel.collapsed {
-        display: none;
-        opacity: 1;
-        transform: none;
-      }
+      .todo-panel.collapsed { display: none; opacity: 1; transform: none; }
       .todo-fab {
         position: static !important;
         transform: none !important;
@@ -1758,23 +1775,15 @@
       }
 
       /* ── Misc ── */
-      .hint { display: none; }
+      .hint { display: none !important; }
       .github-link-bottom {
         position: static !important;
         display: block;
         text-align: center;
         padding: 14px 0 20px;
-        bottom: auto !important;
-        left: auto !important;
       }
-      .alarm-banner {
-        position: fixed;
-        top: 56px;
-      }
-      .mini-toggle {
-        width: 36px;
-        height: 36px;
-      }
+      .alarm-banner { position: fixed; top: 56px; }
+      .mini-toggle  { width: 36px; height: 36px; }
     }
   </style>
 </head>
@@ -2935,6 +2944,9 @@
     function setPanelCollapsed(panel, collapsed, expandBtn) {
       panel.classList.toggle('collapsed', collapsed);
       expandBtn.classList.toggle('visible', collapsed);
+      // On mobile the expand FAB is hidden; update the toggle button text instead
+      const toggleBtn = panel.querySelector('.panel-header .mini-toggle');
+      if (toggleBtn) toggleBtn.textContent = collapsed ? '+' : '−';
       applyTimeScale();
       saveSettings();
     }
@@ -3336,9 +3348,9 @@
     btn12.addEventListener('click', () => setMode(false));
     btn24.addEventListener('click', () => setMode(true));
     btnFullscreen.addEventListener('click', toggleFullscreen);
-    collapseQuickBtn.addEventListener('click', () => setPanelCollapsed(quickPanel, true, expandQuickBtn));
+    collapseQuickBtn.addEventListener('click', () => setPanelCollapsed(quickPanel, !quickPanel.classList.contains('collapsed'), expandQuickBtn));
     expandQuickBtn.addEventListener('click', () => setPanelCollapsed(quickPanel, false, expandQuickBtn));
-    collapseCustomBtn.addEventListener('click', () => setPanelCollapsed(customPanel, true, expandCustomBtn));
+    collapseCustomBtn.addEventListener('click', () => setPanelCollapsed(customPanel, !customPanel.classList.contains('collapsed'), expandCustomBtn));
     expandCustomBtn.addEventListener('click', () => setPanelCollapsed(customPanel, false, expandCustomBtn));
     alarmStopBtn.addEventListener('click', stopAlarm);
     if (collapseTodoBtn) collapseTodoBtn.addEventListener('click', () => setPanelCollapsed(todoPanel, true, expandTodoBtn));
@@ -3613,14 +3625,9 @@
     applyTheme(savedSettings.theme || 'dark');
     
     setMode(use24Hour);
-    if (isMobile()) {
-      // On mobile the expand FABs are hidden, so always show timer panels
-      quickPanel.classList.remove('collapsed');
-      customPanel.classList.remove('collapsed');
-    } else {
-      setPanelCollapsed(quickPanel, !!savedSettings.quickCollapsed, expandQuickBtn);
-      setPanelCollapsed(customPanel, !!savedSettings.customCollapsed, expandCustomBtn);
-    }
+    // Always restore panel state; on mobile the toggle button text is updated by setPanelCollapsed
+    setPanelCollapsed(quickPanel, !!savedSettings.quickCollapsed, expandQuickBtn);
+    setPanelCollapsed(customPanel, !!savedSettings.customCollapsed, expandCustomBtn);
     if (todoPanel) {
       if (typeof savedSettings.todoWidth === 'string' && savedSettings.todoWidth) todoPanel.style.width = savedSettings.todoWidth;
       if (typeof savedSettings.todoHeight === 'string' && savedSettings.todoHeight) todoPanel.style.height = savedSettings.todoHeight;
