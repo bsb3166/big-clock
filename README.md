@@ -16,7 +16,7 @@ A fullscreen web clock with large display styles, floating timers, world clocks,
     - **Decoupled Visibility**: Toggle each element (Date, Lunar, TZ) independently.
 - **Expanded World Clocks**: Live pinned clocks for New York, London, Beijing, **Tokyo (JST)**, **Paris (CET)**, and **Denver (MST/MDT)**.
     - Includes timezone abbreviations for each city.
-- **Multiple Clock Styles**: Default, LED Neon Green/Blue/Orange, Mixed Neon, 7-Segment, Flip Clock, Retro Tech, **Analog Classic** (SVG wall-clock face with Arabic numerals, black hour/minute hands, and a sweeping red second hand), and **Rolex Day-Date** (faithful SVG recreation of the Day-Date 40 ref. 228238 — green ombré sunburst dial, 44-segment fluted gold bezel, upright gold Roman numerals rotated radially, arch-shaped day-of-week aperture with arced lettering, date window at 3 o'clock, gold sword hands, Rolex inscriptions, and a full President bracelet above and below the case).
+- **Multiple Clock Styles**: Default, LED Neon Green/Blue/Orange, Mixed Neon, 7-Segment, Flip Clock, Retro Tech, **Analog Classic** (SVG wall-clock face with Arabic numerals, black hour/minute hands, and a sweeping red second hand), **Rolex Day-Date** (faithful SVG recreation of the Day-Date 40 ref. 228238 — green ombré sunburst dial, 44-segment fluted gold bezel, upright gold Roman numerals rotated radially, arch-shaped day-of-week aperture with arced lettering, date window at 3 o'clock, gold sword hands, Rolex inscriptions, and a full President bracelet above and below the case), and **Dot Matrix** (LED dot matrix display with 5×7 green dot-grid digits, a 60-dot seconds ring with red hour markers, blinking colon, smaller seconds readout, and glow effects on a dark circular face).
 - **Premium Built-in Themes**: 
     - **Dark (Default)**: Classic minimalist deep black.
     - **Midnight Blue / Deep Forest**: Elegant dark gradients.
@@ -24,6 +24,8 @@ A fullscreen web clock with large display styles, floating timers, world clocks,
     - **Modern Tiles**: Architectural charcoal tile pattern.
     - **Natural Rock**: Tactile dark slate stone texture.
     - **Elegant Marble**: High-end white marble (features **Smart Light-Mode** which automatically inverts text for readability).
+    - **Aurora Pink**: Vibrant purple-to-pink gradient.
+    - **Checkerboard**: Black & white marble tile pattern.
     - **Custom Image Background**: Upload your own image via the sub-menu.
 - **Adjustable Display**: Scale the main clock size, or adjust UI panel opacity.
 - **Interactive To-Do List**: Built-in floating to-do list featuring native **HTML5 Drag & Drop sorting**, one-click item removal, and a **Clear All** button (🗑) with confirmation to wipe the entire list.
