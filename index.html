@@ -1915,6 +1915,7 @@
           <option value="default">Default</option>
           <option value="beep">Digital Beep</option>
           <option value="marimba">Marimba</option>
+          <option value="gong">Gong</option>
         </select>
         <div class="custom-dropdown" id="alarmSoundDropdown">
           <button class="dropdown-trigger" id="alarmSoundTrigger" type="button">Default</button>
@@ -1922,6 +1923,7 @@
             <div class="dropdown-item active" data-value="default">Default</div>
             <div class="dropdown-item" data-value="beep">Digital Beep</div>
             <div class="dropdown-item" data-value="marimba">Marimba</div>
+            <div class="dropdown-item" data-value="gong">Gong</div>
           </div>
         </div>
       </div>
@@ -3614,6 +3616,33 @@
         osc.stop(now + 0.45);
         osc2.start(now + 0.1);
         osc2.stop(now + 0.55);
+      } else if (soundType === 'gong') {
+        // Deep body ("Bong")
+        const bodyOsc = ctx.createOscillator();
+        const bodyGain = ctx.createGain();
+        bodyOsc.type = 'triangle';
+        bodyOsc.frequency.setValueAtTime(110, now);
+        bodyOsc.frequency.exponentialRampToValueAtTime(100, now + 1.5);
+        bodyGain.gain.setValueAtTime(0, now);
+        bodyGain.gain.linearRampToValueAtTime(0.5, now + 0.02);
+        bodyGain.gain.exponentialRampToValueAtTime(0.001, now + 2.0);
+
+        // Metallic shimmer ("Clang")
+        const shimmerOsc = ctx.createOscillator();
+        const shimmerGain = ctx.createGain();
+        shimmerOsc.type = 'sine';
+        shimmerOsc.frequency.setValueAtTime(440, now);
+        shimmerGain.gain.setValueAtTime(0, now);
+        shimmerGain.gain.linearRampToValueAtTime(0.2, now + 0.01);
+        shimmerGain.gain.exponentialRampToValueAtTime(0.001, now + 1.0);
+
+        bodyOsc.connect(bodyGain).connect(ctx.destination);
+        shimmerOsc.connect(shimmerGain).connect(ctx.destination);
+        bodyOsc.start(now);
+        shimmerOsc.start(now);
+        bodyOsc.stop(now + 2.1);
+        shimmerOsc.stop(now + 1.1);
+        return;
       } else {
         const osc2 = ctx.createOscillator();
         const gain2 = ctx.createGain();
@@ -3652,7 +3681,8 @@
       alarmBannerEl.classList.add('visible');
       alarmModalBackdropEl.classList.add('visible');
       playAlarmBurst();
-      alarmInterval = setInterval(playAlarmBurst, 700);
+      const repeatMs = alarmSoundSelect.value === 'gong' ? 2500 : 700;
+      alarmInterval = setInterval(playAlarmBurst, repeatMs);
       alarmStopTimeout = setTimeout(stopAlarm, ALARM_DURATION_MS);
     }
 
