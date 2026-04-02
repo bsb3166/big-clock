@@ -3681,7 +3681,7 @@
       alarmBannerEl.classList.add('visible');
       alarmModalBackdropEl.classList.add('visible');
       playAlarmBurst();
-      const repeatMs = alarmSoundSelect.value === 'gong' ? 2500 : 700;
+      const repeatMs = alarmSoundSelect.value === 'gong' ? 1500 : 700;
       alarmInterval = setInterval(playAlarmBurst, repeatMs);
       alarmStopTimeout = setTimeout(stopAlarm, ALARM_DURATION_MS);
     }
