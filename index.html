@@ -2987,8 +2987,9 @@
           case 6: // 3!
             svg = `<text x="${x}" y="${y}" text-anchor="middle" dominant-baseline="central" font-size="28" font-weight="700" ${ff} fill="#111">3!</text>`;
             break;
-          case 7: // 6.9̄
-            svg = `<text x="${x}" y="${y}" text-anchor="middle" dominant-baseline="central" font-size="24" font-weight="700" ${ff} fill="#111">6.9̄</text>`;
+          case 7: // 6.9 with bar over 9
+            svg = `<text x="${x}" y="${y}" text-anchor="middle" dominant-baseline="central" font-size="24" font-weight="700" ${ff} fill="#111">6.9</text>
+                   <line x1="${x + 3}" y1="${y - 13}" x2="${x + 16}" y2="${y - 13}" stroke="#111" stroke-width="2.5"/>`;
             break;
           case 8: // 16/2 (fraction)
             svg = `<text x="${x}" y="${y - 10}" text-anchor="middle" font-size="20" font-weight="700" ${ff} fill="#111">16</text>
