@@ -545,7 +545,7 @@
       line-height: 1;
     }
     .time.rolex-style { overflow: visible; }
-    .time.cuckoo-style { overflow: visible; }
+    .time.cuckoo-style { overflow: visible; height: auto; margin-top: -60px; }
 
     .analog-svg {
       width: 100%;
@@ -4189,7 +4189,11 @@
         // Top bracelet extends ~130 SVG units above the element; bottom ~142 units below.
         const isRolex = clockStyleSelect.value === 'rolex';
         const isCuckoo = clockStyleSelect.value === 'cuckoo';
-        const extraTop    = isRolex ? 130 * finalScale : 0;
+        // For cuckoo, the SVG body starts at y=60 (60px empty space at top), and margin-top:-60px
+        // shifts the element up to compensate visually. timeRectAfter.top reflects this shifted
+        // position, so the actual clock body is 60*finalScale px below the element's top edge.
+        // Subtract a negative extraTop (i.e. add offset) to push the date down accordingly.
+        const extraTop    = isRolex ? 130 * finalScale : isCuckoo ? -60 * finalScale : 0;
         const extraBottom = isRolex ? 142 * finalScale : isCuckoo ? 80 * finalScale : 0;
         if (wcEl) {
           wcEl.style.display = showWorldClock ? 'flex' : 'none';
