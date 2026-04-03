@@ -3290,7 +3290,7 @@
     }
 
     function renderPixelArtClock(h24, mins, secs, ms) {
-      const W = 64, H = 64;
+      const W = 64, H = 72;
       const px = 7;
       const svgW = W * px, svgH = H * px;
 
@@ -3323,12 +3323,23 @@
         for (let x = 0; x < W; x++)
           grid[y][x] = ((x + y) % 2 === 0) ? '#1a3aff' : '#2244ff';
 
-      // GROUND — Mario brick brown at bottom
-      for (let y = 52; y < 56; y++)
-        for (let x = 0; x < W; x++) {
-          const isBorder = (y === 52) || (y === 55) || (x % 8 === 0) || (x % 8 === ((y % 2 === 0) ? 0 : 4));
-          grid[y][x] = isBorder ? '#8B4513' : '#D2691E';
-        }
+      // GROUND — NES brick blocks (8×8 tile, 2 rows of ground = 16px)
+      // Classic Mario brick: 8×8 tile with mortar lines
+      const brickTile = (bx, by) => {
+        for (let ty = 0; ty < 8; ty++)
+          for (let tx = 0; tx < 8; tx++) {
+            const gx = bx + tx, gy = by + ty;
+            if (gx < 0 || gx >= W || gy < 0 || gy >= H) continue;
+            // Mortar lines: row 0, row 4 are horizontal mortar
+            // Vertical mortar: col 0 on top half, col 4 on bottom half
+            const isMortar = (ty === 0) || (ty === 4) ||
+              (ty < 4 && tx === 0) || (ty >= 4 && tx === 4);
+            grid[gy][gx] = isMortar ? '#111111' : '#C84C0C';
+          }
+      };
+      for (let bx = 0; bx < W; bx += 8)
+        for (let by = 60; by < H; by += 8)
+          brickTile(bx, by);
 
       // GREEN HILLS (rounded)
       const drawHill = (cx, cy, r, c1, c2) => {
@@ -3336,14 +3347,14 @@
           for (let dx = -r; dx <= r; dx++) {
             if (dx * dx + dy * dy <= r * r) {
               const x = cx + dx, y = cy + dy;
-              if (x >= 0 && x < W && y >= 0 && y < H && y < 52)
+              if (x >= 0 && x < W && y >= 0 && y < H && y < 60)
                 grid[y][x] = (dy < -r * 0.5) ? c2 : c1;
             }
           }
       };
-      drawHill(8, 52, 14, '#22aa22', '#44cc44');
-      drawHill(50, 52, 10, '#1a8c1a', '#33bb33');
-      drawHill(30, 52, 7, '#22aa22', '#44cc44');
+      drawHill(8, 60, 14, '#22aa22', '#44cc44');
+      drawHill(50, 60, 10, '#1a8c1a', '#33bb33');
+      drawHill(30, 60, 7, '#22aa22', '#44cc44');
 
       // CLOUDS — Mario-style puffy white clouds
       const drawCloud = (cx, cy) => {
@@ -3364,96 +3375,171 @@
       };
       // Slowly drifting clouds
       const cOff = ((secs + ms / 1000) * 0.3) % W;
-      drawCloud(Math.floor((6 + cOff) % W), 20);
-      drawCloud(Math.floor((52 + cOff) % W), 16);
+      drawCloud(Math.floor((6 + cOff) % W), 28);
+      drawCloud(Math.floor((52 + cOff) % W), 22);
 
-      // QUESTION BLOCK — ? block
-      const qbx = 48, qby = 26;
-      for (let y = qby; y < qby + 6; y++)
-        for (let x = qbx; x < qbx + 6; x++) {
-          if (x < W && y < H) {
-            const edge = (y === qby || y === qby + 5 || x === qbx || x === qbx + 5);
-            grid[y][x] = edge ? '#aa6600' : '#ffcc00';
-          }
+      // NES ? BLOCK — 10×10 compact
+      const qbx = 48, qby = 32;
+      const qK='#000000',qO='#E89840',qY='#FCC870',qD='#A05000',qW='#FCF8D8';
+      const qs = 10;
+      for (let y = 0; y < qs; y++)
+        for (let x = 0; x < qs; x++) {
+          const gx = qbx+x, gy = qby+y;
+          if (gx<0||gx>=W||gy<0||gy>=H) continue;
+          const isOutline = y===0||y===qs-1||x===0||x===qs-1;
+          if (isOutline) { grid[gy][gx]=qK; continue; }
+          if (y===qs-2||x===qs-2) { grid[gy][gx]=qD; continue; }
+          if (y===1||x===1) { grid[gy][gx]=qO; continue; }
+          grid[gy][gx]=qY;
         }
-      // ? mark
-      if (qbx + 2 < W && qby + 1 < H) grid[qby + 1][qbx + 2] = '#aa6600';
-      if (qbx + 3 < W && qby + 1 < H) grid[qby + 1][qbx + 3] = '#aa6600';
-      if (qbx + 3 < W && qby + 2 < H) grid[qby + 2][qbx + 3] = '#aa6600';
-      if (qbx + 2 < W && qby + 3 < H) grid[qby + 3][qbx + 2] = '#aa6600';
-      if (qbx + 2 < W && qby + 4 < H) grid[qby + 4][qbx + 2] = '#aa6600';
-
-      // GREEN PIPE — left side
-      const ppx = 4, ppy = 40;
-      // Pipe top (wider)
-      for (let y = ppy; y < ppy + 3; y++)
-        for (let x = ppx - 1; x < ppx + 7; x++)
-          if (x >= 0 && x < W && y < 52)
-            grid[y][x] = (x === ppx - 1 || x === ppx + 6) ? '#006600' : '#00cc00';
-      // Pipe body
-      for (let y = ppy + 3; y < 52; y++)
-        for (let x = ppx; x < ppx + 6; x++)
-          if (x < W)
-            grid[y][x] = (x === ppx || x === ppx + 5) ? '#006600' : '#00aa00';
-
-      // SMALL MARIO — standing on the hill
-      const mx = 22, my = 38;
-      // Hat (red)
-      [[0,-6],[1,-6],[2,-6],[-1,-5],[0,-5],[1,-5],[2,-5],[3,-5]].forEach(([dx,dy]) => {
-        const x = mx+dx, y = my+dy;
-        if (x>=0&&x<W&&y>=0&&y<H) grid[y][x] = '#ee0000';
+      // Corner rivets
+      [[2,2],[2,qs-4],[qs-4,2],[qs-4,qs-4]].forEach(([cx,cy]) => {
+        const gx=qbx+cx, gy=qby+cy;
+        if(gx>=0&&gx<W&&gy>=0&&gy<H) grid[gy][gx]=qK;
       });
-      // Face (skin)
-      [[0,-4],[1,-4],[2,-4],[0,-3],[1,-3],[2,-3]].forEach(([dx,dy]) => {
-        const x = mx+dx, y = my+dy;
-        if (x>=0&&x<W&&y>=0&&y<H) grid[y][x] = '#ffaa77';
-      });
-      // Eye
-      if (mx+2<W && my-4>=0) grid[my-4][mx+2] = '#222';
-      // Mustache
-      [[0,-3],[1,-3]].forEach(([dx,dy]) => {
-        const x=mx+dx,y=my+dy;
-        if(x>=0&&x<W&&y>=0&&y<H) grid[y][x]='#552200';
-      });
-      // Body (blue overalls + red shirt)
-      [[0,-2],[1,-2],[2,-2]].forEach(([dx,dy]) => {
-        const x=mx+dx,y=my+dy;
-        if(x>=0&&x<W&&y>=0&&y<H) grid[y][x]='#ee0000';
-      });
-      [[0,-1],[1,-1],[2,-1]].forEach(([dx,dy]) => {
-        const x=mx+dx,y=my+dy;
-        if(x>=0&&x<W&&y>=0&&y<H) grid[y][x]='#2222cc';
-      });
-      // Feet
-      [[-1,0],[0,0],[2,0],[3,0]].forEach(([dx,dy]) => {
-        const x=mx+dx,y=my+dy;
-        if(x>=0&&x<W&&y>=0&&y<H) grid[y][x]='#663300';
+      // ? mark (white)
+      [[3,2],[4,2],[5,2],
+       [5,3],
+       [4,4],
+       [4,5],
+       [4,7]
+      ].forEach(([dx,dy]) => {
+        const gx=qbx+dx, gy=qby+dy;
+        if(gx>=0&&gx<W&&gy>=0&&gy<H) grid[gy][gx]=qW;
       });
 
-      // TIME BOX — warm amber/orange panel near top
-      const boxX = 12, boxY = 5, boxW = 40, boxH = 13;
-      for (let y = boxY; y < boxY + boxH; y++)
-        for (let x = boxX; x < boxX + boxW; x++)
-          if (x >= 0 && x < W && y >= 0 && y < H) {
-            const edge = y === boxY || y === boxY+boxH-1 || x === boxX || x === boxX+boxW-1;
-            const edge2 = y === boxY+1 || y === boxY+boxH-2 || x === boxX+1 || x === boxX+boxW-2;
-            grid[y][x] = edge ? '#996600' : edge2 ? '#cc8800' : '#ffbb33';
+      // GREEN PIPE — NES style, left side
+      const ppx = 3, ppy = 44;
+      // Pipe lip (wider, 10 wide × 4 tall)
+      for (let y = ppy; y < ppy + 4; y++)
+        for (let x = ppx - 1; x < ppx + 9; x++) {
+          if (x<0||x>=W||y<0||y>=H||y>=60) continue;
+          if (x===ppx-1||x===ppx+8||y===ppy||y===ppy+3) grid[y][x]='#005800';
+          else if (x===ppx||x===ppx+1) grid[y][x]='#80D010';
+          else grid[y][x]='#00A800';
+        }
+      // Pipe body (narrower, 8 wide)
+      for (let y = ppy+4; y < 60; y++)
+        for (let x = ppx; x < ppx + 8; x++) {
+          if (x>=W||y>=H) continue;
+          if (x===ppx||x===ppx+7) grid[y][x]='#005800';
+          else if (x===ppx+1||x===ppx+2) grid[y][x]='#80D010';
+          else grid[y][x]='#00A800';
+        }
+
+      // NES MARIO — classic standing pose, facing right, 12×16 sprite
+      // Accurate NES color palette
+      const mx = 24, my = 59;
+      // _=transparent, R=red, S=skin, B=brown(hair/shoes), G=green(overalls in SMB1 Luigi, but Mario uses blue)
+      // Actually NES Mario: red hat/shirt, skin face, brown hair, blue overalls, brown shoes
+      const mR='#D82800', mS='#FCA044', mB='#AC7C00', mO='#0038F8', mK='#000000';
+      // 12 wide × 16 tall — classic NES small Mario standing right
+      const marioRows = [
+        // Row 0-2: Hat
+        '____RRR_____',
+        '___RRRRRR___',
+        '___BBBSBS___',
+        // Row 3-5: Face
+        '__BSBSSBS___',
+        '__BSSBSSBS__',
+        '__BBSSSSB___',
+        '____SSSS____',
+        // Row 7-9: Shirt + arms
+        '___RRORR____',
+        '__RRRORRR___',
+        '__RRROOORRR_',
+        // Row 10-11: Belt area
+        '__SSORRROSS_',
+        '__SSOOOOSS__',
+        '___OOOOOO___',
+        // Row 13-15: Legs + shoes
+        '__OO__OO____',
+        '_BBB__BBB___',
+        'BBBB__BBBB__'
+      ];
+      const marioColorMap = {'R':mR,'S':mS,'B':mB,'O':mO,'K':mK};
+      marioRows.forEach((row, dy) => {
+        [...row].forEach((ch, dx) => {
+          if (ch === '_') return;
+          const c = marioColorMap[ch];
+          if (!c) return;
+          const gx = mx + dx, gy = my - 15 + dy;
+          if (gx>=0&&gx<W&&gy>=0&&gy<H) grid[gy][gx] = c;
+        });
+      });
+
+      // TWO BRICK BLOCKS — Hour block (left) + Minute block (right), touching
+      // Each block is 16×16 pixels, matching NES ? block style
+      const blkS = 16; // square block size
+      const totalW = blkS * 2;
+      const blkStartX = Math.floor((W - totalW) / 2);
+      const blkY = 9;
+
+      const drawBrickBlock = (bx, by) => {
+        const s = blkS;
+        for (let y = by; y < by + s; y++)
+          for (let x = bx; x < bx + s; x++) {
+            if (x < 0 || x >= W || y < 0 || y >= H) continue;
+            const ry = y - by, rx = x - bx;
+            const isOutline = ry === 0 || ry === s-1 || rx === 0 || rx === s-1;
+            if (isOutline) {
+              grid[y][x] = '#000000';
+            } else {
+              // Fill with amber
+              grid[y][x] = '#E89840';
+            }
           }
+        // Highlight: top edge inner (row 1) and left edge inner (col 1) = bright
+        for (let x = bx+1; x < bx+s-1; x++)
+          if (by+1 >= 0 && by+1 < H && x >= 0 && x < W) grid[by+1][x] = '#FCC870';
+        for (let y = by+1; y < by+s-1; y++)
+          if (y >= 0 && y < H && bx+1 >= 0 && bx+1 < W) grid[y][bx+1] = '#FCC870';
+        // Shadow: bottom edge inner (row s-2) and right edge inner (col s-2) = darker
+        for (let x = bx+1; x < bx+s-1; x++)
+          if (by+s-2 >= 0 && by+s-2 < H && x >= 0 && x < W) grid[by+s-2][x] = '#A05000';
+        for (let y = by+1; y < by+s-1; y++)
+          if (y >= 0 && y < H && bx+s-2 >= 0 && bx+s-2 < W) grid[y][bx+s-2] = '#A05000';
+        // Corner rivets: 2×2 black dots at each inner corner
+        [[2,2],[2,s-4],[s-4,2],[s-4,s-4]].forEach(([cx,cy]) => {
+          for (let dy = 0; dy < 2; dy++)
+            for (let dx = 0; dx < 2; dx++) {
+              const gx = bx+cx+dx, gy = by+cy+dy;
+              if (gx>=0&&gx<W&&gy>=0&&gy<H) grid[gy][gx] = '#000000';
+            }
+        });
+      };
 
-      // Draw time digits centered in box
+      const hrBlockX = blkStartX;
+      const minBlockX = blkStartX + blkS; // touching, no gap
+      drawBrickBlock(hrBlockX, blkY);
+      drawBrickBlock(minBlockX, blkY);
+
+      // Blinking colon dots between blocks (2px wide for symmetry)
       const colonBlink = secs % 2 === 0;
+      if (colonBlink) {
+        const cx1 = hrBlockX + blkS - 1, cx2 = hrBlockX + blkS;
+        const cy1 = blkY + 5, cy2 = blkY + 10;
+        [cx1, cx2].forEach(cx => {
+          if (cx>=0&&cx<W) {
+            if (cy1>=0&&cy1<H) grid[cy1][cx] = '#FCC870';
+            if (cy2>=0&&cy2<H) grid[cy2][cx] = '#FCC870';
+          }
+        });
+      }
+
+      // Draw hour digits centered in left block
       let timePixels = [];
-      let tx = boxX + 4;
-      const ty = boxY + 4;
-      timePixels.push(...charPixels(hoursText[0], tx, ty, '#221100'));
-      tx += 5;
-      timePixels.push(...charPixels(hoursText[1], tx, ty, '#221100'));
-      tx += 5;
-      if (colonBlink) timePixels.push(...charPixels(':', tx, ty, '#221100'));
-      tx += 3;
-      timePixels.push(...charPixels(minsText[0], tx, ty, '#221100'));
-      tx += 5;
-      timePixels.push(...charPixels(minsText[1], tx, ty, '#221100'));
+      const digitColor = '#442200';
+      const digitY = blkY + Math.floor((blkS - 5) / 2);
+      const hrDigitX = hrBlockX + Math.floor((blkS - 9) / 2);
+      timePixels.push(...charPixels(hoursText[0], hrDigitX, digitY, digitColor));
+      timePixels.push(...charPixels(hoursText[1], hrDigitX + 5, digitY, digitColor));
+
+      // Minutes centered in right block
+      const minDigitX = minBlockX + Math.floor((blkS - 9) / 2);
+      timePixels.push(...charPixels(minsText[0], minDigitX, digitY, digitColor));
+      timePixels.push(...charPixels(minsText[1], minDigitX + 5, digitY, digitColor));
+
       timePixels.forEach(({ gx, gy, color }) => {
         if (gx >= 0 && gx < W && gy >= 0 && gy < H) grid[gy][gx] = color;
       });
@@ -3482,8 +3568,8 @@
       const scrollSpeed = 4;
       const totalTextW = scrollText.length * 4;
       const scrollOffset = Math.floor((Date.now() / 1000) * scrollSpeed) % totalTextW;
-      const scrollY = 57;
-      const scrollColors = ['#ff4444','#44ff44','#4488ff','#ffff44','#ff44ff','#44ffff','#ff8844'];
+      const scrollY = 1; // scrolling in the sky area
+      const scrollColors = ['#ffffff','#ffff44','#44ff44','#ff8844','#44ffff','#ff44ff','#ffffff'];
 
       for (let ci = 0; ci < scrollText.length; ci++) {
         const ch = scrollText[ci].toUpperCase();
@@ -3500,18 +3586,27 @@
             }
       }
 
-      // COIN — animated, floating above ? block
-      const coinFrame = Math.floor((secs * 4 + ms / 250) % 4);
-      const coinY = qby - 4 + Math.floor(Math.sin((secs + ms/1000) * 2) * 1.5);
-      const coinX = qbx + 2;
-      if (coinFrame < 3) { // visible most of the time
-        [[0,0],[0,1],[0,2]].forEach(([dx, dy]) => {
-          const x = coinX + dx, y = coinY + dy;
-          if (x >= 0 && x < W && y >= 0 && y < H) grid[y][x] = '#ffdd00';
+      // COIN — small gold coin, animated bob above ? block
+      const coinBaseY = qby - 5;
+      const coinX = qbx + 4;
+      const coinBob = Math.floor(Math.sin((secs + ms/1000) * 2.5) * 1.5);
+      const coinY = coinBaseY + coinBob;
+      const coinFrame = Math.floor((secs * 3 + ms / 333) % 4);
+      // Small 3×4 coin with spin
+      const coinSprites = [
+        ['_Y_','YWY','YWY','_Y_'], // full
+        ['_Y_','_Y_','_Y_','_Y_'], // thin
+        ['_Y_','YYY','YYY','_Y_'], // full no highlight
+        ['_Y_','_Y_','_Y_','_Y_']  // thin
+      ];
+      const coinColors = {'Y':'#FFD700','W':'#FFFFA0'};
+      coinSprites[coinFrame].forEach((row, dy) => {
+        [...row].forEach((ch, dx) => {
+          if (ch === '_') return;
+          const gx = coinX + dx, gy = coinY + dy;
+          if (gx>=0&&gx<W&&gy>=0&&gy<H) grid[gy][gx] = coinColors[ch] || '#FFD700';
         });
-        if (coinY + 1 >= 0 && coinY + 1 < H && coinX >= 0 && coinX < W)
-          grid[coinY + 1][coinX] = '#ffaa00'; // center darker
-      }
+      });
 
       // Build SVG — optimize by grouping same-color pixels
       const colorMap = {};
