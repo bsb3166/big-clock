@@ -534,7 +534,8 @@
 
     .time.analog-style,
     .time.rolex-style,
-    .time.dotmatrix-style {
+    .time.dotmatrix-style,
+    .time.cuckoo-style {
       display: block;
       width: 500px;
       height: 500px;
@@ -544,6 +545,7 @@
       line-height: 1;
     }
     .time.rolex-style { overflow: visible; }
+    .time.cuckoo-style { overflow: visible; }
 
     .analog-svg {
       width: 100%;
@@ -1892,6 +1894,7 @@
           <option value="rolex">Rolex Day-Date</option>
           <option value="dotmatrix">Dot Matrix</option>
           <option value="math">Math Clock</option>
+          <option value="cuckoo">Cuckoo Clock</option>
         </select>
         <div class="custom-dropdown" id="clockStyleDropdown">
           <button class="dropdown-trigger" id="clockStyleTrigger" type="button">Default</button>
@@ -1908,6 +1911,7 @@
             <div class="dropdown-item" data-value="rolex">Rolex Day-Date</div>
             <div class="dropdown-item" data-value="dotmatrix">Dot Matrix</div>
             <div class="dropdown-item" data-value="math">Math Clock</div>
+            <div class="dropdown-item" data-value="cuckoo">Cuckoo Clock</div>
           </div>
         </div>
       </div>
@@ -2265,6 +2269,9 @@
     let lastAlarmMinute = -1;
     let draggedItemIndex = null;
     const ALARM_DURATION_MS = 20000;
+    let cuckooAnimating = false;
+    let cuckooAnimStart = 0;
+    let lastCuckooHour = -1;
 
     let ytState = { url: '', videoId: '', ready: false, playing: false };
     let themeState = { current: 'dark' };
@@ -2664,6 +2671,12 @@
           spacing: '0',
           weight: '700',
           transform: 'none'
+        },
+        cuckoo: {
+          font: 'Inter, "Segoe UI", Roboto, Helvetica, Arial, sans-serif',
+          spacing: '0',
+          weight: '700',
+          transform: 'none'
         }
       };
       const chosen = styleMap[styleKey] || styleMap.default;
@@ -3056,6 +3069,215 @@
 
           <circle cx="${cx}" cy="${cy}" r="8" fill="#333" stroke="#222" stroke-width="1.5"/>
           <circle cx="${cx}" cy="${cy}" r="3.5" fill="#555"/>
+        </svg>`;
+    }
+
+    function playCuckooSound(times) {
+      const ctx = ensureAudioContext();
+      if (!ctx) return;
+      const count = Math.min(times || 1, 12);
+      for (let i = 0; i < count; i++) {
+        const t = ctx.currentTime + i * 0.6;
+        // High "coo"
+        const o1 = ctx.createOscillator();
+        const g1 = ctx.createGain();
+        o1.type = 'sine';
+        o1.frequency.setValueAtTime(880, t);
+        o1.frequency.exponentialRampToValueAtTime(660, t + 0.15);
+        g1.gain.setValueAtTime(0, t);
+        g1.gain.linearRampToValueAtTime(0.25, t + 0.02);
+        g1.gain.exponentialRampToValueAtTime(0.001, t + 0.2);
+        o1.connect(g1).connect(ctx.destination);
+        o1.start(t);
+        o1.stop(t + 0.22);
+        // Low "coo"
+        const o2 = ctx.createOscillator();
+        const g2 = ctx.createGain();
+        o2.type = 'sine';
+        o2.frequency.setValueAtTime(660, t + 0.2);
+        o2.frequency.exponentialRampToValueAtTime(520, t + 0.38);
+        g2.gain.setValueAtTime(0, t + 0.2);
+        g2.gain.linearRampToValueAtTime(0.2, t + 0.22);
+        g2.gain.exponentialRampToValueAtTime(0.001, t + 0.45);
+        o2.connect(g2).connect(ctx.destination);
+        o2.start(t + 0.2);
+        o2.stop(t + 0.47);
+      }
+    }
+
+    function triggerCuckoo(times) {
+      if (cuckooAnimating) return;
+      cuckooAnimating = true;
+      cuckooAnimStart = performance.now();
+      const count = Math.min(times || 1, 12);
+      playCuckooSound(count);
+      // End animation after all coos
+      setTimeout(() => { cuckooAnimating = false; }, count * 600 + 400);
+    }
+
+    function renderCuckooClock(h24, mins, secs, ms) {
+      // Body dimensions
+      const bx = 130, bw = 240;
+      const by = 60, bBottom = 540;
+      const archR = bw / 2;
+      const archCx = bx + bw / 2; // 250
+      const archCy = by + archR;   // 180
+
+      // Clock center — in the lower-center area of the body
+      const cx = 250, cy = 365;
+      const hours = h24 % 12;
+      const handR = 90; // radius for hour marker positions
+
+      const secAngle  = (secs + ms / 1000) * 6;
+      const minAngle  = mins * 6 + (secs + ms / 1000) * 0.1;
+      const hourAngle = hours * 30 + (mins + secs / 60) * 0.5;
+
+      const pxF = (r, a) => cx + r * Math.cos((a - 90) * Math.PI / 180);
+      const pyF = (r, a) => cy + r * Math.sin((a - 90) * Math.PI / 180);
+
+      // Check hourly cuckoo
+      if (mins === 0 && secs < 2 && lastCuckooHour !== h24 && clockStyleSelect.value === 'cuckoo') {
+        lastCuckooHour = h24;
+        triggerCuckoo(hours === 0 ? 12 : hours);
+      }
+
+      const bodyPath = `M ${bx},${archCy} L ${bx},${bBottom - 12} Q ${bx},${bBottom} ${bx + 12},${bBottom} L ${bx + bw - 12},${bBottom} Q ${bx + bw},${bBottom} ${bx + bw},${bBottom - 12} L ${bx + bw},${archCy} A ${archR},${archR} 0 0,0 ${bx},${archCy} Z`;
+
+      // Pre-compute the 12 hour marker positions (snapped to grid later)
+      const hourPositions = [];
+      for (let i = 1; i <= 12; i++) {
+        hourPositions.push({ x: pxF(handR, i * 30), y: pyF(handR, i * 30) });
+      }
+
+      // Build unified dimple grid — each dot is either a shadow dimple or an orange hour marker
+      const dGap = 17;
+      const dR = 5.8;
+      let dimplesSvg = '';
+      let orangeSvg = '';
+      const margin = 10;
+
+      // Step 1: collect all valid grid points (staggered honeycomb pattern)
+      // Grid is centered on cx so 12 o'clock (directly above center) always has a grid point
+      const rowH = dGap * Math.sqrt(3) / 2; // vertical spacing for hex grid
+      const gridPoints = [];
+      // Compute rows centered around cy for the 12-o'clock position
+      const colsLeft = Math.ceil((cx - bx - margin) / dGap);
+      const colsRight = Math.ceil((bx + bw - margin - cx) / dGap);
+      let rowIdx = 0;
+      for (let dy = by + 14; dy <= bBottom - margin; dy += rowH, rowIdx++) {
+        const xOff = (rowIdx % 2 === 1) ? dGap / 2 : 0; // stagger odd rows
+        // Generate columns centered on cx
+        for (let ci = -colsLeft; ci <= colsRight; ci++) {
+          const dx = cx + ci * dGap + xOff;
+          if (dx < bx + margin || dx > bx + bw - margin) continue;
+          const inRect = dx > bx + 6 && dx < bx + bw - 6 && dy > archCy && dy < bBottom - 6;
+          const inArch = dy <= archCy && Math.sqrt((dx - archCx) ** 2 + (dy - archCy) ** 2) < (archR - 8);
+          if (!inRect && !inArch) continue;
+          gridPoints.push({ x: dx, y: dy });
+        }
+      }
+
+      // Step 2: for each of the 12 hour positions, find the SINGLE nearest grid point
+      const hourGridIndices = new Set();
+      for (let h = 0; h < 12; h++) {
+        let bestIdx = -1, bestDist = Infinity;
+        for (let g = 0; g < gridPoints.length; g++) {
+          const dist = Math.sqrt((gridPoints[g].x - hourPositions[h].x) ** 2 + (gridPoints[g].y - hourPositions[h].y) ** 2);
+          if (dist < bestDist) { bestDist = dist; bestIdx = g; }
+        }
+        if (bestIdx >= 0) hourGridIndices.add(bestIdx);
+      }
+
+      // Step 3: render grid — orange for hour markers, shadow for rest
+      for (let g = 0; g < gridPoints.length; g++) {
+        const { x: dx, y: dy } = gridPoints[g];
+        if (hourGridIndices.has(g)) {
+          orangeSvg += `<circle cx="${dx}" cy="${dy}" r="${dR + 1.5}" fill="#ff6b1a"/>`;
+        } else {
+          dimplesSvg += `<circle cx="${dx}" cy="${dy}" r="${dR}" fill="rgba(0,0,0,0.16)"/>`;
+        }
+      }
+
+      // Hands
+      const handSvg = (angle, tipR, backR, sw) =>
+        `<line x1="${pxF(backR, angle + 180).toFixed(1)}" y1="${pyF(backR, angle + 180).toFixed(1)}"
+               x2="${pxF(tipR, angle).toFixed(1)}" y2="${pyF(tipR, angle).toFixed(1)}"
+               stroke="#ff6b1a" stroke-width="${sw}" stroke-linecap="round"/>`;
+
+      // Cuckoo window
+      const winCx = archCx, winCy = archCy - 55;
+      const winR = 22;
+
+      // Bird animation — white bird facing forward
+      let birdSvg = '';
+      if (cuckooAnimating) {
+        const elapsed = performance.now() - cuckooAnimStart;
+        const cycle = (elapsed % 600) / 600;
+        const out = cycle < 0.5;
+        const bY = out ? winCy - 14 : winCy + 4;
+        const bScale = out ? 1.0 : 0.5;
+        const wobble = out ? Math.sin(elapsed / 60) * 6 : 0;
+        birdSvg = `
+          <g transform="translate(${winCx},${bY}) scale(${bScale}) rotate(${wobble.toFixed(1)})">
+            <ellipse cx="0" cy="4" rx="9" ry="11" fill="white"/>
+            <circle cx="0" cy="-8" r="7" fill="white"/>
+            <circle cx="-3" cy="-9" r="1.5" fill="#222"/>
+            <circle cx="3" cy="-9" r="1.5" fill="#222"/>
+            <polygon points="-2,-6 2,-6 0,${out ? '-1' : '-4'}" fill="#e8a020"/>
+            <ellipse cx="-8" cy="4" rx="4" ry="7" fill="#eee" transform="rotate(10,-8,4)"/>
+            <ellipse cx="8" cy="4" rx="4" ry="7" fill="#eee" transform="rotate(-10,8,4)"/>
+          </g>`;
+      }
+
+      const btnY = bBottom + 10;
+
+      timeEl.classList.add('cuckoo-style');
+      timeEl.classList.remove('analog-style', 'flip-style', 'led-style', 'led-green-style',
+        'led-blue-style', 'led-orange-style', 'led-mixed-style', 'segment-style', 'rolex-style', 'dotmatrix-style');
+
+      timeEl.innerHTML = `
+        <svg class="analog-svg" viewBox="0 0 500 620" xmlns="http://www.w3.org/2000/svg" overflow="visible">
+          <defs>
+            <filter id="cShadow" x="-10%" y="-10%" width="130%" height="130%">
+              <feDropShadow dx="3" dy="6" stdDeviation="8" flood-opacity="0.3"/>
+            </filter>
+            <clipPath id="cBodyClip">
+              <path d="${bodyPath}"/>
+            </clipPath>
+          </defs>
+
+          <g filter="url(#cShadow)">
+            <path d="${bodyPath}" fill="#2874A6"/>
+          </g>
+
+          <!-- Unified dimple grid (clipped) -->
+          <g clip-path="url(#cBodyClip)">
+            ${dimplesSvg}
+            ${orangeSvg}
+          </g>
+
+          <path d="${bodyPath}" fill="none" stroke="#1F6591" stroke-width="4"/>
+
+          <!-- Cuckoo window -->
+          <circle cx="${winCx}" cy="${winCy}" r="${winR}" fill="#0a0a0a" stroke="#1a4f72" stroke-width="3.5"/>
+          ${!cuckooAnimating ? `<circle cx="${winCx}" cy="${winCy}" r="${winR - 3}" fill="#111"/>` : ''}
+          ${birdSvg}
+
+          <!-- Hands -->
+          ${handSvg(hourAngle, 60, 10, 7)}
+          ${handSvg(minAngle, 82, 12, 5)}
+
+          <!-- Center pivot -->
+          <circle cx="${cx}" cy="${cy}" r="5" fill="#ff6b1a"/>
+          <circle cx="${cx}" cy="${cy}" r="2.5" fill="#c04a10"/>
+
+          <!-- Cuckoo button -->
+          <g style="cursor:pointer" onclick="triggerCuckoo(1)">
+            <rect x="${cx - 42}" y="${btnY}" width="84" height="28" rx="14"
+                  fill="rgba(255,107,26,0.12)" stroke="#ff6b1a" stroke-width="1.5"/>
+            <text x="${cx}" y="${btnY + 17}" text-anchor="middle" font-size="12" font-weight="600"
+                  fill="#ff6b1a" font-family="Inter,Arial,sans-serif">🐦 Cuckoo!</text>
+          </g>
         </svg>`;
     }
 
@@ -3615,8 +3837,9 @@
         // Add extra clearance so date/yt info clears the top strap and world clocks clear the bottom strap.
         // Top bracelet extends ~130 SVG units above the element; bottom ~142 units below.
         const isRolex = clockStyleSelect.value === 'rolex';
+        const isCuckoo = clockStyleSelect.value === 'cuckoo';
         const extraTop    = isRolex ? 130 * finalScale : 0;
-        const extraBottom = isRolex ? 142 * finalScale : 0;
+        const extraBottom = isRolex ? 142 * finalScale : isCuckoo ? 80 * finalScale : 0;
         if (wcEl) {
           wcEl.style.display = showWorldClock ? 'flex' : 'none';
           wcEl.style.top = `${timeRectAfter.bottom + extraBottom + 20}px`;
@@ -3958,6 +4181,8 @@
         renderDotMatrixClock(h24, now.getMinutes(), secs, now.getMilliseconds());
       } else if (clockStyleSelect.value === 'math') {
         renderMathClock(h24, now.getMinutes(), secs, now.getMilliseconds());
+      } else if (clockStyleSelect.value === 'cuckoo') {
+        renderCuckooClock(h24, now.getMinutes(), secs, now.getMilliseconds());
       } else if (clockStyleSelect.value === 'flip') {
         renderFlipClock(hoursText, mins, ampmText);
       } else if (clockStyleSelect.value === 'segment') {
@@ -3967,7 +4192,7 @@
       }
 
       const colonNode = document.getElementById('colon');
-      if (colonNode && clockStyleSelect.value !== 'segment' && clockStyleSelect.value !== 'analog' && clockStyleSelect.value !== 'rolex' && clockStyleSelect.value !== 'dotmatrix' && clockStyleSelect.value !== 'math')
+      if (colonNode && !['segment','analog','rolex','dotmatrix','math','cuckoo'].includes(clockStyleSelect.value))
         colonNode.classList.toggle('off', secs % 2 === 1);
 
       const dateFmt = new Intl.DateTimeFormat(undefined, {
