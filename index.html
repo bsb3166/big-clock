@@ -3192,7 +3192,7 @@
       for (let g = 0; g < gridPoints.length; g++) {
         const { x: dx, y: dy } = gridPoints[g];
         if (hourGridIndices.has(g)) {
-          orangeSvg += `<circle cx="${dx}" cy="${dy}" r="${dR + 1.5}" fill="#ff6b1a"/>`;
+          orangeSvg += `<circle cx="${dx}" cy="${dy}" r="${dR}" fill="#ff6b1a"/>`;
         } else {
           dimplesSvg += `<circle cx="${dx}" cy="${dy}" r="${dR}" fill="rgba(0,0,0,0.16)"/>`;
         }
