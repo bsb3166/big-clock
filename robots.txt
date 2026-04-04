@@ -1,0 +1,4 @@
+User-agent: *
+Allow: /
+
+Sitemap: https://bsb3166.github.io/big-clock/sitemap.xml
