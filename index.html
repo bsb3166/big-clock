@@ -2179,6 +2179,14 @@
         <button class="action-btn" id="resumeTimer" type="button">Resume</button>
         <button class="action-btn warning" id="clearTimer" type="button">Clear</button>
       </div>
+
+      <label class="toggle-row" style="display:flex;align-items:center;gap:8px;margin-top:12px;cursor:pointer;user-select:none;">
+        <span style="font-size:0.85em;opacity:0.8;">Lock screen when done</span>
+        <input type="checkbox" id="lockScreenToggle" style="display:none;">
+        <span class="toggle-track" id="lockScreenTrack" style="position:relative;width:36px;height:20px;border-radius:10px;background:rgba(255,255,255,0.15);transition:background 0.2s;flex-shrink:0;">
+          <span class="toggle-knob" style="position:absolute;top:2px;left:2px;width:16px;height:16px;border-radius:50%;background:#fff;transition:transform 0.2s;"></span>
+        </span>
+      </label>
     </aside>
 
     <aside class="todo-panel panel" id="todoPanel">
@@ -2303,6 +2311,8 @@
     let timerPausedRemainingMs = 0;
     let timerState = 'idle';
     let timerTotalDurationMs = 0;
+    const lockScreenToggle = document.getElementById('lockScreenToggle');
+    const lockScreenTrack = document.getElementById('lockScreenTrack');
     let alarmAudioContext = null;
     let alarmInterval = null;
     let alarmStopTimeout = null;
@@ -2907,7 +2917,8 @@
         showYt,
         showDateDisplay,
         showTz,
-        showWorldClock
+        showWorldClock,
+        lockScreenOnDone: lockScreenToggle.checked
       };
 
       try {
@@ -4918,6 +4929,11 @@
       const repeatMs = alarmSoundSelect.value === 'gong' ? 1500 : 700;
       alarmInterval = setInterval(playAlarmBurst, repeatMs);
       alarmStopTimeout = setTimeout(stopAlarm, ALARM_DURATION_MS);
+
+      // Lock Windows screen (Win+L) if toggle is on and it's a timer alarm
+      if (!message && lockScreenToggle.checked) {
+        fetch('http://127.0.0.1:9999/lock', { method: 'POST' }).catch(() => {});
+      }
     }
 
     function stopAlarm() {
@@ -5440,6 +5456,14 @@
     resumeTimerBtn.addEventListener('click', resumeTimer);
     clearTimerBtn.addEventListener('click', clearTimer);
 
+    // Lock screen toggle
+    lockScreenToggle.addEventListener('change', () => {
+      const on = lockScreenToggle.checked;
+      lockScreenTrack.style.background = on ? '#4CAF50' : 'rgba(255,255,255,0.15)';
+      lockScreenTrack.querySelector('.toggle-knob').style.transform = on ? 'translateX(16px)' : 'translateX(0)';
+      saveSettings();
+    });
+
     document.addEventListener('keydown', (e) => {
       const key = e.key.toLowerCase();
       if (isTypingInInput()) {
@@ -5484,6 +5508,11 @@
     if (typeof savedSettings.showDateDisplay === 'boolean') showDateDisplay = savedSettings.showDateDisplay;
     if (typeof savedSettings.showTz === 'boolean') showTz = savedSettings.showTz;
     if (typeof savedSettings.showWorldClock === 'boolean') showWorldClock = savedSettings.showWorldClock;
+    if (typeof savedSettings.lockScreenOnDone === 'boolean') {
+      lockScreenToggle.checked = savedSettings.lockScreenOnDone;
+      lockScreenTrack.style.background = savedSettings.lockScreenOnDone ? '#4CAF50' : 'rgba(255,255,255,0.15)';
+      lockScreenTrack.querySelector('.toggle-knob').style.transform = savedSettings.lockScreenOnDone ? 'translateX(16px)' : 'translateX(0)';
+    }
 
     lunarToggle.checked = showLunarDate;
     ytToggle.checked = showYt;
