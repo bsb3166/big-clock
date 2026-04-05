@@ -68,11 +68,15 @@ For best results:
 - Hit `F` to enter fullscreen mode.
 - Allow sound so timer alarms can play through the Web Audio API without interruption.
 
-**Recommended: use `server.py`** for full functionality (lock screen support):
+**Recommended: use `start.bat`** for full functionality:
 ```
-python server.py
+start.bat              → start server + open browser
+install.bat            → one-click install to Windows auto-startup
+uninstall.bat          → remove from startup
 ```
-Or on Windows, just double-click `start.bat`. This serves the app on `http://localhost:8888` and enables the **"Lock screen when done"** toggle in Custom Timer, which triggers Windows system lock (Win+L) when the timer finishes. Works on any Windows PC with Python installed.
+This serves the app on `http://localhost:8888` and enables the **"Lock screen when done"** toggle in Custom Timer, which triggers Windows system lock (Win+L) when the timer finishes.
+
+Run `install.bat` once on any Windows PC — the lock API server runs silently in the background on every login. No extra steps needed after install.
 
 ## GitHub Pages Setup
 

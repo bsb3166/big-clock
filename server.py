@@ -1,9 +1,8 @@
 """
 Big Clock server — serves static files + lock-screen API.
-  python server.py          → http://localhost:8888
-  POST /api/lock            → triggers Windows lock (Win+L)
-
-On any Windows PC: double-click start.bat or run `python server.py`.
+  python server.py              → start server + open browser
+  python server.py --daemon     → start silently (for auto-startup)
+  POST /api/lock                → triggers Windows lock (Win+L)
 """
 import http.server
 import json
@@ -12,6 +11,7 @@ import sys
 import webbrowser
 
 PORT = int(os.environ.get('PORT', 8888))
+DAEMON = '--daemon' in sys.argv
 
 # Windows lock support (safe import — non-Windows just skips)
 try:
@@ -53,18 +53,22 @@ class Handler(http.server.SimpleHTTPRequestHandler):
         self.send_header('Access-Control-Allow-Methods', 'POST, OPTIONS')
         self.send_header('Access-Control-Allow-Headers', 'Content-Type')
 
+    def log_message(self, fmt, *args):
+        if not DAEMON:
+            super().log_message(fmt, *args)
+
 
 if __name__ == '__main__':
-    # Serve from the directory where server.py lives
     os.chdir(os.path.dirname(os.path.abspath(__file__)))
 
     with http.server.HTTPServer(('', PORT), Handler) as httpd:
         url = f'http://localhost:{PORT}'
-        print(f'Big Clock running at {url}')
-        print('Lock screen API available at POST /api/lock')
-        print('Press Ctrl+C to stop.\n')
-        webbrowser.open(url)
+        if not DAEMON:
+            print(f'Big Clock running at {url}')
+            print('Lock screen API available at POST /api/lock')
+            print('Press Ctrl+C to stop.\n')
+            webbrowser.open(url)
         try:
             httpd.serve_forever()
         except KeyboardInterrupt:
-            print('\nStopped.')
+            pass
