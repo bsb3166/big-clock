@@ -2213,6 +2213,15 @@
     <div class="hint">F = fullscreen · T = 12/24h · Q = quick timer · W = custom timer · A = alarm · R = to-do · Esc = stop alarm</div>
     <a href="https://github.com/bsb3166/big-clock" target="_blank" class="github-link-bottom">GitHub</a>
 
+    <div id="lockScreenOverlay" style="display:none;position:fixed;inset:0;z-index:100000;background:#000;flex-direction:column;align-items:center;justify-content:center;">
+      <div style="text-align:center;color:#fff;">
+        <div style="font-size:4rem;margin-bottom:0.3em;">🔒</div>
+        <div style="font-size:2.5rem;font-weight:700;margin-bottom:0.2em;font-family:'Orbitron','Segoe UI',sans-serif;">TIME'S UP</div>
+        <div style="font-size:1.1rem;opacity:0.6;margin-bottom:2.5em;">Timer finished — take a break!</div>
+        <button id="lockScreenDismiss" type="button" style="padding:16px 56px;font-size:1.1rem;font-weight:600;border:2px solid rgba(255,255,255,0.3);border-radius:12px;background:transparent;color:#fff;cursor:pointer;transition:all 0.2s;letter-spacing:0.05em;" onmouseover="this.style.background='rgba(255,255,255,0.1)'" onmouseout="this.style.background='transparent'">Unlock</button>
+      </div>
+    </div>
+
     <div class="alarm-modal-backdrop" id="alarmModalBackdrop">
       <div class="alarm-modal">
         <h2>Timer done</h2>
@@ -2313,6 +2322,8 @@
     let timerTotalDurationMs = 0;
     const lockScreenToggle = document.getElementById('lockScreenToggle');
     const lockScreenTrack = document.getElementById('lockScreenTrack');
+    const lockScreenOverlay = document.getElementById('lockScreenOverlay');
+    const lockScreenDismiss = document.getElementById('lockScreenDismiss');
     let alarmAudioContext = null;
     let alarmInterval = null;
     let alarmStopTimeout = null;
@@ -4930,9 +4941,11 @@
       alarmInterval = setInterval(playAlarmBurst, repeatMs);
       alarmStopTimeout = setTimeout(stopAlarm, ALARM_DURATION_MS);
 
-      // Lock Windows screen (Win+L) if toggle is on and it's a timer alarm
+      // Lock screen if toggle is on and it's a timer alarm
       if (!message && lockScreenToggle.checked) {
-        fetch('/api/lock', { method: 'POST' }).catch(() => {});
+        fetch('/api/lock', { method: 'POST' })
+          .then(r => { if (!r.ok) throw new Error(); })
+          .catch(() => { lockScreenOverlay.style.display = 'flex'; });
       }
     }
 
@@ -5462,6 +5475,10 @@
       lockScreenTrack.style.background = on ? '#4CAF50' : 'rgba(255,255,255,0.15)';
       lockScreenTrack.querySelector('.toggle-knob').style.transform = on ? 'translateX(16px)' : 'translateX(0)';
       saveSettings();
+    });
+    lockScreenDismiss.addEventListener('click', () => {
+      lockScreenOverlay.style.display = 'none';
+      stopAlarm();
     });
 
     document.addEventListener('keydown', (e) => {
