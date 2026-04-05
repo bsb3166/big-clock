@@ -2314,6 +2314,278 @@
     let cuckooAnimStart = 0;
     let lastCuckooHour = -1;
 
+    // ---- Pixel Art Mario game state ----
+    const mario = {
+      x: 24, y: 59,       // bottom-left of sprite (feet), y=59 = on ground (ground at 60)
+      vx: 0, vy: 0,
+      facing: 1,           // 1=right, -1=left
+      onGround: true,
+      crouching: false,
+      walkFrame: 0,
+      walkTimer: 0,
+      inPipe: false,
+      pipeTimer: 0,
+      pipePhase: '',
+      pipeStartY: 0,
+      lastUpdate: 0,
+      coyoteTimer: 0,
+      jumpBufferTimer: 0
+    };
+    const marioKeys = {};
+    const marioJumpPressed = { value: false }; // edge-triggered
+    const marioJumpReleased = { value: false };
+    const marioFireworks = [];
+    const MARIO_W = 12, MARIO_H = 16, MARIO_CROUCH_H = 10;
+    // Mario-like movement config
+    const M_GRAVITY = 1.8, M_FALL_GRAVITY = 3.3;
+    const M_JUMP_VEL = -21.75, M_SHORT_JUMP_MULT = 0.5;
+    const M_MAX_RUN_SPEED = 9.75, M_RUN_ACCEL = 2.0, M_RUN_DECEL = 2.5;
+    const M_AIR_CONTROL = 0.45, M_FRICTION = 0.8;
+    const M_COYOTE_TIME = 6, M_JUMP_BUFFER = 6;
+    const MARIO_GROUND_Y = 59;
+    // Scene constants for collision
+    const MARIO_BLK_S = 16, MARIO_BLK_Y = 9;
+    const MARIO_BLK_START_X = Math.floor((64 - 32) / 2); // 16
+    const MARIO_PIPE_X = 3, MARIO_PIPE_LIP_Y = 44, MARIO_PIPE_RIGHT = 11;
+
+    document.addEventListener('keydown', (e) => {
+      if (typeof clockStyleSelect !== 'undefined' && clockStyleSelect.value !== 'pixelart') return;
+      const k = e.key.toLowerCase();
+      if (['arrowleft','arrowright','arrowup','arrowdown','i','j','k','l',' '].includes(k)) {
+        e.preventDefault();
+        if (!marioKeys[k]) { // newly pressed
+          if (k === 'arrowup' || k === 'i' || k === ' ') marioJumpPressed.value = true;
+        }
+        marioKeys[k] = true;
+      }
+    });
+    document.addEventListener('keyup', (e) => {
+      const k = e.key.toLowerCase();
+      if (['arrowleft','arrowright','arrowup','arrowdown','i','j','k','l',' '].includes(k)) {
+        marioKeys[k] = false;
+        if (k === 'arrowup' || k === 'i' || k === ' ') marioJumpReleased.value = true;
+      }
+    });
+
+    function spawnFirework(fx, fy) {
+      // Spawn multiple bursts across the entire screen
+      const colors = ['#FF0000','#FFD700','#00FF00','#00BFFF','#FF69B4','#FFA500','#FFFFFF'];
+      const burstCount = 5 + Math.floor(Math.random() * 4); // 5-8 bursts
+      for (let b = 0; b < burstCount; b++) {
+        const bx = Math.random() * 64;
+        const by = Math.random() * 50; // keep in sky/mid area
+        const particles = [];
+        const count = 15 + Math.floor(Math.random() * 10);
+        for (let i = 0; i < count; i++) {
+          const angle = Math.random() * Math.PI * 2;
+          const speed = 1.5 + Math.random() * 3;
+          particles.push({
+            x: 0, y: 0,
+            vx: Math.cos(angle) * speed,
+            vy: Math.sin(angle) * speed - 1.5,
+            color: colors[Math.floor(Math.random() * colors.length)],
+            life: 1.0
+          });
+        }
+        marioFireworks.push({ x: bx, y: by, t: performance.now() + b * 80, particles });
+      }
+    }
+
+    function updateMarioPhysics(dt) {
+      if (mario.inPipe) return;
+
+      const left = marioKeys['arrowleft'] || marioKeys['j'];
+      const right = marioKeys['arrowright'] || marioKeys['l'];
+      const down = marioKeys['arrowdown'] || marioKeys['k'];
+
+      // --- Horizontal movement with acceleration & friction ---
+      let moveDir = 0;
+      if (left) moveDir -= 1;
+      if (right) moveDir += 1;
+
+      if (moveDir !== 0) {
+        mario.facing = moveDir;
+        const accel = mario.onGround ? M_RUN_ACCEL : M_AIR_CONTROL;
+        mario.vx += accel * moveDir;
+      } else {
+        if (mario.onGround) {
+          mario.vx *= M_FRICTION;
+          if (Math.abs(mario.vx) < 0.05) mario.vx = 0;
+        }
+      }
+      mario.vx = Math.max(-M_MAX_RUN_SPEED, Math.min(M_MAX_RUN_SPEED, mario.vx));
+
+      // Crouching
+      mario.crouching = down && mario.onGround;
+
+      // --- Coyote time & jump buffer ---
+      if (mario.onGround) {
+        mario.coyoteTimer = M_COYOTE_TIME;
+      } else {
+        mario.coyoteTimer = Math.max(0, mario.coyoteTimer - 1);
+      }
+
+      if (marioJumpPressed.value) {
+        mario.jumpBufferTimer = M_JUMP_BUFFER;
+      } else {
+        mario.jumpBufferTimer = Math.max(0, mario.jumpBufferTimer - 1);
+      }
+
+      // --- Jump start ---
+      if (mario.jumpBufferTimer > 0 && (mario.onGround || mario.coyoteTimer > 0) && !mario.crouching) {
+        mario.vy = M_JUMP_VEL;
+        mario.onGround = false;
+        mario.coyoteTimer = 0;
+        mario.jumpBufferTimer = 0;
+      }
+
+      // --- Variable jump height ---
+      if (marioJumpReleased.value && mario.vy < 0) {
+        mario.vy *= M_SHORT_JUMP_MULT;
+      }
+
+      // Clear edge triggers
+      marioJumpPressed.value = false;
+      marioJumpReleased.value = false;
+
+      // --- Asymmetric gravity ---
+      if (mario.vy < 0) {
+        mario.vy += M_GRAVITY;
+      } else {
+        mario.vy += M_FALL_GRAVITY;
+      }
+
+      // Walk animation
+      if (mario.onGround && Math.abs(mario.vx) > 0.3) {
+        mario.walkTimer += dt;
+        if (mario.walkTimer > 60) { mario.walkFrame = (mario.walkFrame + 1) % 3; mario.walkTimer = 0; }
+      } else if (mario.onGround) {
+        mario.walkFrame = 0; mario.walkTimer = 0;
+      }
+
+      // --- Apply velocity ---
+      mario.x += mario.vx;
+      mario.y += mario.vy;
+
+      // Wrap around edges — fully disappear before reappearing
+      if (mario.x >= 64 + MARIO_W) mario.x = -MARIO_W;
+      if (mario.x + MARIO_W <= 0) mario.x = 64;
+
+      // Current height
+      const mH = mario.crouching ? MARIO_CROUCH_H : MARIO_H;
+      const mTop = mario.y - mH + 1;
+      const mLeft = mario.x;
+      const mRight = mario.x + MARIO_W - 1;
+
+      // --- Ground collision ---
+      if (mario.y >= MARIO_GROUND_Y) {
+        mario.y = MARIO_GROUND_Y;
+        mario.vy = 0;
+        mario.onGround = true;
+      }
+
+      // --- Time block collision ---
+      const blkLeft = MARIO_BLK_START_X;
+      const blkRight = MARIO_BLK_START_X + MARIO_BLK_S * 2;
+      const blkTop = MARIO_BLK_Y;
+      const blkBottom = MARIO_BLK_Y + MARIO_BLK_S;
+
+      // Landing on top of blocks
+      if (mario.vy >= 0 && mRight >= blkLeft && mLeft <= blkRight) {
+        const prevBottom = mario.y - mario.vy;
+        if (prevBottom <= blkTop && mario.y >= blkTop) {
+          mario.y = blkTop;
+          mario.vy = 0;
+          mario.onGround = true;
+        }
+      }
+
+      // Hitting block from below (head bump → fireworks)
+      if (mario.vy < 0 && mRight >= blkLeft && mLeft <= blkRight) {
+        if (mTop <= blkBottom && mTop + Math.abs(mario.vy) >= blkBottom) {
+          mario.vy = 2;
+          const hitX = Math.max(blkLeft, Math.min(blkRight, mario.x + MARIO_W / 2));
+          spawnFirework(hitX, blkTop);
+        }
+      }
+
+      // Side collision with blocks
+      if (mTop < blkBottom && mario.y > blkTop) {
+        if (mario.vx > 0 && mRight >= blkLeft && mRight - mario.vx < blkLeft) {
+          mario.x = blkLeft - MARIO_W;
+          mario.vx = 0;
+        }
+        if (mario.vx < 0 && mLeft <= blkRight && mLeft - mario.vx > blkRight) {
+          mario.x = blkRight + 1;
+          mario.vx = 0;
+        }
+      }
+
+      // --- Pipe collision ---
+      const pipeLipLeft = MARIO_PIPE_X - 1;
+      const pipeLipRight = MARIO_PIPE_X + 9;
+      const pipeLipTop = MARIO_PIPE_LIP_Y;
+      if (mario.vy >= 0 && mRight >= pipeLipLeft && mLeft <= pipeLipRight) {
+        const prevBottom = mario.y - mario.vy;
+        if (prevBottom <= pipeLipTop && mario.y >= pipeLipTop) {
+          mario.y = pipeLipTop;
+          mario.vy = 0;
+          mario.onGround = true;
+        }
+      }
+
+      // Enter pipe
+      const marioCenterX = mario.x + MARIO_W / 2;
+      if (down && mario.onGround && mario.y === pipeLipTop &&
+          marioCenterX >= MARIO_PIPE_X && marioCenterX <= MARIO_PIPE_X + 8) {
+        mario.inPipe = true;
+        mario.pipePhase = 'down';
+        mario.pipeTimer = 0;
+        mario.pipeStartY = mario.y;
+        mario.vx = 0;
+      }
+
+      // Falling off edges
+      if (mario.onGround && mario.y < MARIO_GROUND_Y) {
+        const feetY = mario.y;
+        const onBlock = (feetY === blkTop && mRight >= blkLeft && mLeft <= blkRight);
+        const onPipe = (feetY === pipeLipTop && mRight >= pipeLipLeft && mLeft <= pipeLipRight);
+        if (!onBlock && !onPipe) {
+          mario.onGround = false;
+        }
+      }
+    }
+
+    function updateMarioPipe(dt) {
+      mario.pipeTimer += dt;
+      if (mario.pipePhase === 'down') {
+        // Sink into pipe over 500ms
+        mario.y = mario.pipeStartY + (mario.pipeTimer / 500) * MARIO_H;
+        if (mario.pipeTimer > 500) {
+          mario.pipePhase = 'teleport';
+          mario.pipeTimer = 0;
+        }
+      } else if (mario.pipePhase === 'teleport') {
+        // Brief pause, then appear on top of time blocks
+        if (mario.pipeTimer > 300) {
+          mario.x = MARIO_BLK_START_X + MARIO_BLK_S - MARIO_W / 2;
+          mario.y = MARIO_BLK_Y - 2;
+          mario.pipePhase = 'emerge';
+          mario.pipeTimer = 0;
+        }
+      } else if (mario.pipePhase === 'emerge') {
+        // Rise up over 400ms
+        mario.y = MARIO_BLK_Y - (mario.pipeTimer / 400) * 4;
+        if (mario.pipeTimer > 400) {
+          mario.y = MARIO_BLK_Y;
+          mario.vy = 0;
+          mario.onGround = true;
+          mario.inPipe = false;
+          mario.pipePhase = '';
+        }
+      }
+    }
+
     let ytState = { url: '', videoId: '', ready: false, playing: false };
     let themeState = { current: 'dark' };
     let ytPlayer = null;
@@ -3466,44 +3738,160 @@
           else grid[y][x]='#00A800';
         }
 
-      // NES MARIO — classic standing pose, facing right, 12×16 sprite
-      // Accurate NES color palette
-      const mx = 24, my = 59;
-      // _=transparent, R=red, S=skin, B=brown(hair/shoes), G=green(overalls in SMB1 Luigi, but Mario uses blue)
-      // Actually NES Mario: red hat/shirt, skin face, brown hair, blue overalls, brown shoes
-      const mR='#D82800', mS='#FCA044', mB='#AC7C00', mO='#0038F8', mK='#000000';
-      // 12 wide × 16 tall — classic NES small Mario standing right
-      const marioRows = [
-        // Row 0-2: Hat
+      // ---- MARIO PHYSICS UPDATE ----
+      const nowMs = performance.now();
+      const mdt = mario.lastUpdate ? Math.min(nowMs - mario.lastUpdate, 50) : 16;
+      mario.lastUpdate = nowMs;
+      if (mario.inPipe) { updateMarioPipe(mdt); }
+      else { updateMarioPhysics(mdt); }
+
+      // Update fireworks
+      for (let fi = marioFireworks.length - 1; fi >= 0; fi--) {
+        const fw = marioFireworks[fi];
+        const age = (nowMs - fw.t) / 1000;
+        if (age > 1.5) { marioFireworks.splice(fi, 1); continue; }
+        fw.particles.forEach(p => {
+          p.x += p.vx * 0.3;
+          p.y += p.vy * 0.3;
+          p.vy += 0.05;
+          p.life = Math.max(0, 1 - age / 1.2);
+        });
+      }
+
+      // ---- MARIO SPRITE SELECTION ----
+      const mR='#D82800', mS='#FCA044', mB='#AC7C00', mO='#0038F8';
+      const marioColorMap = {'R':mR,'S':mS,'B':mB,'O':mO};
+
+      const marioStand = [
         '____RRR_____',
         '___RRRRRR___',
         '___BBBSBS___',
-        // Row 3-5: Face
         '__BSBSSBS___',
         '__BSSBSSBS__',
         '__BBSSSSB___',
         '____SSSS____',
-        // Row 7-9: Shirt + arms
         '___RRORR____',
         '__RRRORRR___',
         '__RRROOORRR_',
-        // Row 10-11: Belt area
         '__SSORRROSS_',
         '__SSOOOOSS__',
         '___OOOOOO___',
-        // Row 13-15: Legs + shoes
         '__OO__OO____',
         '_BBB__BBB___',
         'BBBB__BBBB__'
       ];
-      const marioColorMap = {'R':mR,'S':mS,'B':mB,'O':mO,'K':mK};
-      marioRows.forEach((row, dy) => {
-        [...row].forEach((ch, dx) => {
-          if (ch === '_') return;
-          const c = marioColorMap[ch];
-          if (!c) return;
-          const gx = mx + dx, gy = my - 15 + dy;
-          if (gx>=0&&gx<W&&gy>=0&&gy<H) grid[gy][gx] = c;
+      const marioWalk1 = [
+        '____RRR_____',
+        '___RRRRRR___',
+        '___BBBSBS___',
+        '__BSBSSBS___',
+        '__BSSBSSBS__',
+        '__BBSSSSB___',
+        '____SSSS____',
+        '___RRORRR___',
+        '__RRRORRRRR_',
+        '__RRROOORRR_',
+        '__SSORRROSS_',
+        '__SSOOOOSS__',
+        '___OOOOOO___',
+        '___BB_OO____',
+        '__BBB_BBB___',
+        '__BBB__BB___'
+      ];
+      const marioWalk2 = [
+        '____RRR_____',
+        '___RRRRRR___',
+        '___BBBSBS___',
+        '__BSBSSBS___',
+        '__BSSBSSBS__',
+        '__BBSSSSB___',
+        '____SSSS____',
+        '___RRORR____',
+        '__RRRORRR___',
+        '__RRROOORRR_',
+        '__SSORRROSS_',
+        '__SSOOOOSS__',
+        '___OOOOOO___',
+        '____OO_BB___',
+        '___BBB_BBB__',
+        '___BB__BBB__'
+      ];
+      const marioJump = [
+        '____RRR_____',
+        '___RRRRRR___',
+        '___BBBSBS___',
+        '__BSBSSBS___',
+        '__BSSBSSBS__',
+        '__BBSSSSB___',
+        '____SSSS____',
+        'S__RRORR__S_',
+        'SS_RRORR_SS_',
+        '_SSROOORRR__',
+        '__SSOOOOS___',
+        '___OOOOOO___',
+        '__RROORR____',
+        '_RRR__RRR___',
+        'BBBB__BBBB__',
+        '_BB____BB___'
+      ];
+      const marioCrouch = [
+        '___BBBSBS___',
+        '__BSBSSBS___',
+        '__BSSBSSBS__',
+        '__BBSSSSB___',
+        '____SSSS____',
+        '___RRORR____',
+        '__RRRORRR___',
+        '__RRROOORRR_',
+        '__SSOOOOSS__',
+        'BBBB__BBBB__'
+      ];
+
+      // Choose sprite
+      let chosenSprite;
+      let spriteH = MARIO_H;
+      if (mario.crouching) { chosenSprite = marioCrouch; spriteH = MARIO_CROUCH_H; }
+      else if (!mario.onGround) { chosenSprite = marioJump; }
+      else if (mario.vx !== 0) { chosenSprite = [marioStand, marioWalk1, marioWalk2][mario.walkFrame]; }
+      else { chosenSprite = marioStand; }
+
+      // Render Mario (with horizontal flip if facing left)
+      const mx = Math.round(mario.x), my = Math.round(mario.y);
+      if (!mario.inPipe || mario.pipePhase === 'emerge') {
+        chosenSprite.forEach((row, dy) => {
+          const chars = [...row];
+          if (mario.facing === -1) chars.reverse();
+          chars.forEach((ch, dx) => {
+            if (ch === '_') return;
+            const c = marioColorMap[ch];
+            if (!c) return;
+            const gx = mx + dx;
+            const gy = my - spriteH + 1 + dy;
+            if (gx>=0&&gx<W&&gy>=0&&gy<H) grid[gy][gx] = c;
+          });
+        });
+      } else if (mario.pipePhase === 'down') {
+        // Partially visible — only rows above pipe lip
+        chosenSprite.forEach((row, dy) => {
+          const chars = [...row];
+          if (mario.facing === -1) chars.reverse();
+          chars.forEach((ch, dx) => {
+            if (ch === '_') return;
+            const c = marioColorMap[ch]; if (!c) return;
+            const gx = mx + dx;
+            const gy = my - spriteH + 1 + dy;
+            if (gx>=0&&gx<W&&gy>=0&&gy<MARIO_PIPE_LIP_Y) grid[gy][gx] = c;
+          });
+        });
+      }
+
+      // Render fireworks
+      marioFireworks.forEach(fw => {
+        fw.particles.forEach(p => {
+          if (p.life <= 0) return;
+          const gx = Math.round(fw.x + p.x);
+          const gy = Math.round(fw.y + p.y);
+          if (gx>=0&&gx<W&&gy>=0&&gy<H) grid[gy][gx] = p.color;
         });
       });
 
