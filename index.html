@@ -1935,6 +1935,7 @@
           <option value="math">Math Clock</option>
           <option value="cuckoo">Cuckoo Clock</option>
           <option value="pixelart">Pixel Art Scene</option>
+          <option value="timer">Timer</option>
         </select>
         <div class="custom-dropdown" id="clockStyleDropdown">
           <button class="dropdown-trigger" id="clockStyleTrigger" type="button">Default</button>
@@ -1953,6 +1954,7 @@
             <div class="dropdown-item" data-value="math">Math Clock</div>
             <div class="dropdown-item" data-value="cuckoo">Cuckoo Clock</div>
             <div class="dropdown-item" data-value="pixelart">Pixel Art Scene</div>
+            <div class="dropdown-item" data-value="timer">Timer</div>
           </div>
         </div>
       </div>
@@ -2997,6 +2999,12 @@
           spacing: '0',
           weight: '700',
           transform: 'none'
+        },
+        timer: {
+          font: '"Orbitron", "Segoe UI", sans-serif',
+          spacing: '-0.02em',
+          weight: '700',
+          transform: 'none'
         }
       };
       const chosen = styleMap[styleKey] || styleMap.default;
@@ -3161,6 +3169,61 @@
           <span class="ampm" id="ampm" ${use24Hour ? 'style="display:none"' : ''}>${ampmText}</span>
         `;
       }
+    }
+
+    function renderTimerClock() {
+      timeEl.classList.remove('flip-style', 'led-style', 'led-green-style', 'led-blue-style', 'led-orange-style', 'led-mixed-style', 'segment-style', 'analog-style', 'rolex-style', 'dotmatrix-style');
+
+      let remaining = 0;
+      let statusText = 'Idle';
+      let statusClass = '';
+
+      if (timerState === 'running' && timerTargetMs) {
+        remaining = Math.max(0, timerTargetMs - Date.now());
+        if (remaining === 0) {
+          timerState = 'done';
+          triggerAlarm();
+        }
+        statusText = 'Running';
+        statusClass = 'color:#4CAF50;';
+      } else if (timerState === 'paused') {
+        remaining = timerPausedRemainingMs;
+        statusText = 'Paused';
+        statusClass = 'color:#FF9800;';
+      } else if (timerState === 'done') {
+        statusText = 'Done!';
+        statusClass = 'color:#F44336;';
+      }
+
+      const totalSeconds = Math.max(0, Math.ceil(remaining / 1000));
+      const hrs = Math.floor(totalSeconds / 3600);
+      const minutes = Math.floor((totalSeconds % 3600) / 60);
+      const seconds = totalSeconds % 60;
+
+      const showBlink = timerState === 'running' && (Date.now() % 1000 < 500);
+      const colonStyle = (timerState === 'running' && !showBlink) ? 'opacity:0.2' : '';
+
+      let timeDisplay;
+      if (hrs > 0) {
+        timeDisplay = `
+          <span id="hours">${String(hrs).padStart(2, '0')}</span>
+          <span class="colon" id="colon" style="${colonStyle}">:</span>
+          <span id="minutes">${String(minutes).padStart(2, '0')}</span>
+          <span class="colon" style="${colonStyle}">:</span>
+          <span>${String(seconds).padStart(2, '0')}</span>
+        `;
+      } else {
+        timeDisplay = `
+          <span id="hours">${String(minutes).padStart(2, '0')}</span>
+          <span class="colon" id="colon" style="${colonStyle}">:</span>
+          <span id="minutes">${String(seconds).padStart(2, '0')}</span>
+        `;
+      }
+
+      timeEl.innerHTML = `
+        ${timeDisplay}
+        <div style="font-size:0.14em;margin-top:0.3em;letter-spacing:0.1em;${statusClass}">${statusText}</div>
+      `;
     }
 
     function renderFlipClock(hoursText, minutesText, ampmText) {
@@ -4968,6 +5031,8 @@
         renderCuckooClock(h24, now.getMinutes(), secs, now.getMilliseconds());
       } else if (clockStyleSelect.value === 'pixelart') {
         renderPixelArtClock(h24, now.getMinutes(), secs, now.getMilliseconds());
+      } else if (clockStyleSelect.value === 'timer') {
+        renderTimerClock();
       } else if (clockStyleSelect.value === 'flip') {
         renderFlipClock(hoursText, mins, ampmText);
       } else if (clockStyleSelect.value === 'segment') {
@@ -4977,7 +5042,7 @@
       }
 
       const colonNode = document.getElementById('colon');
-      if (colonNode && !['segment','analog','rolex','dotmatrix','math','cuckoo','pixelart'].includes(clockStyleSelect.value))
+      if (colonNode && !['segment','analog','rolex','dotmatrix','math','cuckoo','pixelart','timer'].includes(clockStyleSelect.value))
         colonNode.classList.toggle('off', secs % 2 === 1);
 
       const dateFmt = new Intl.DateTimeFormat(undefined, {
