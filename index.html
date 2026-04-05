@@ -2468,8 +2468,9 @@
       mario.y += mario.vy;
 
       // Wrap around edges — fully disappear before reappearing
-      if (mario.x >= 64 + MARIO_W) mario.x = -MARIO_W;
-      if (mario.x + MARIO_W <= 0) mario.x = 64;
+      // Destinations are set so they don't trigger the opposite wrap
+      if (mario.x >= 64) { mario.x = -MARIO_W + 0.5; }
+      else if (mario.x + MARIO_W <= 0) { mario.x = 64 - 0.5; }
 
       // Current height
       const mH = mario.crouching ? MARIO_CROUCH_H : MARIO_H;
