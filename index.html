@@ -2302,6 +2302,7 @@
     let timerTargetMs = null;
     let timerPausedRemainingMs = 0;
     let timerState = 'idle';
+    let timerTotalDurationMs = 0;
     let alarmAudioContext = null;
     let alarmInterval = null;
     let alarmStopTimeout = null;
@@ -3176,7 +3177,8 @@
 
       let remaining = 0;
       let statusText = 'Idle';
-      let statusClass = '';
+      let statusColor = 'rgba(255,255,255,0.4)';
+      let ringColor = 'rgba(255,255,255,0.15)';
 
       if (timerState === 'running' && timerTargetMs) {
         remaining = Math.max(0, timerTargetMs - Date.now());
@@ -3185,14 +3187,25 @@
           triggerAlarm();
         }
         statusText = 'Running';
-        statusClass = 'color:#4CAF50;';
+        statusColor = '#4CAF50';
+        ringColor = '#4CAF50';
       } else if (timerState === 'paused') {
         remaining = timerPausedRemainingMs;
         statusText = 'Paused';
-        statusClass = 'color:#FF9800;';
+        statusColor = '#FF9800';
+        ringColor = '#FF9800';
       } else if (timerState === 'done') {
         statusText = 'Done!';
-        statusClass = 'color:#F44336;';
+        statusColor = '#F44336';
+        ringColor = '#F44336';
+      }
+
+      // Progress calculation
+      let progress = 0;
+      if (timerTotalDurationMs > 0 && (timerState === 'running' || timerState === 'paused')) {
+        progress = 1 - (remaining / timerTotalDurationMs);
+      } else if (timerState === 'done') {
+        progress = 1;
       }
 
       const totalSeconds = Math.max(0, Math.ceil(remaining / 1000));
@@ -3220,9 +3233,28 @@
         `;
       }
 
+      // SVG circular progress ring — uses vw-based sizing to wrap around the time text
+      const stroke = 12;
+      const svgSize = 300;
+      const radius = (svgSize - stroke * 2) / 2;
+      const circumference = 2 * Math.PI * radius;
+      const dashOffset = circumference * (1 - progress);
+
       timeEl.innerHTML = `
-        ${timeDisplay}
-        <div style="font-size:0.14em;margin-top:0.3em;letter-spacing:0.1em;${statusClass}">${statusText}</div>
+        <div style="position:relative;display:inline-flex;align-items:center;justify-content:center;width:min(80vw,500px);height:min(80vw,500px);">
+          <svg viewBox="0 0 ${svgSize} ${svgSize}" style="position:absolute;inset:0;width:100%;height:100%;transform:rotate(-90deg);">
+            <circle cx="${svgSize/2}" cy="${svgSize/2}" r="${radius}" fill="none" stroke="rgba(255,255,255,0.08)" stroke-width="${stroke}" />
+            <circle cx="${svgSize/2}" cy="${svgSize/2}" r="${radius}" fill="none" stroke="${ringColor}" stroke-width="${stroke}"
+              stroke-linecap="round"
+              stroke-dasharray="${circumference}"
+              stroke-dashoffset="${dashOffset}"
+              style="transition:stroke-dashoffset 0.3s linear;" />
+          </svg>
+          <div style="display:flex;flex-direction:column;align-items:center;z-index:1;">
+            <div style="font-size:min(15vw, 5.5rem);font-weight:700;line-height:1;">${timeDisplay}</div>
+            <div style="font-size:min(3vw, 1rem);margin-top:0.5em;letter-spacing:0.1em;color:${statusColor}">${statusText}</div>
+          </div>
+        </div>
       `;
     }
 
@@ -4735,6 +4767,7 @@
       const safeDuration = Math.max(1000, durationMs);
       stopAlarm();
       timerTargetMs = Date.now() + safeDuration;
+      timerTotalDurationMs = safeDuration;
       timerPausedRemainingMs = 0;
       timerState = 'running';
       updateTimerUI();
