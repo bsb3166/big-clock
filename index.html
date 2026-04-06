@@ -2187,6 +2187,18 @@
           <span class="toggle-knob" style="position:absolute;top:2px;left:2px;width:16px;height:16px;border-radius:50%;background:#fff;transition:transform 0.2s;"></span>
         </span>
       </label>
+      <div id="lockSetupGuide" style="display:none;margin-top:8px;padding:10px 12px;border-radius:8px;background:rgba(255,165,0,0.12);border:1px solid rgba(255,165,0,0.3);font-size:0.78em;line-height:1.5;">
+        <div style="margin-bottom:6px;"><strong>⚠️ Setup required</strong> (one-time, Windows only)</div>
+        <div style="opacity:0.85;">This feature locks your Windows screen (Win+L) when the timer ends. It needs a tiny background helper:</div>
+        <div style="margin-top:8px;">
+          <a id="lockDownloadLink" href="https://github.com/bsb3166/big-clock/archive/refs/heads/main.zip" download
+            style="display:inline-block;padding:6px 14px;border-radius:6px;background:rgba(255,255,255,0.12);color:#fff;text-decoration:none;font-weight:600;font-size:0.95em;">
+            📥 Download
+          </a>
+          <span style="opacity:0.6;margin-left:4px;">→ unzip → double-click <code style="background:rgba(255,255,255,0.1);padding:2px 5px;border-radius:3px;">install.bat</code></span>
+        </div>
+        <div style="margin-top:6px;opacity:0.5;font-size:0.9em;">After install, it runs silently on every login. Works with any URL.</div>
+      </div>
     </aside>
 
     <aside class="todo-panel panel" id="todoPanel">
@@ -5458,10 +5470,29 @@
     clearTimerBtn.addEventListener('click', clearTimer);
 
     // Lock screen toggle
-    lockScreenToggle.addEventListener('change', () => {
-      const on = lockScreenToggle.checked;
+    const lockSetupGuide = document.getElementById('lockSetupGuide');
+
+    function updateLockToggleUI(on) {
       lockScreenTrack.style.background = on ? '#4CAF50' : 'rgba(255,255,255,0.15)';
       lockScreenTrack.querySelector('.toggle-knob').style.transform = on ? 'translateX(16px)' : 'translateX(0)';
+    }
+
+    function checkLockDaemon() {
+      return fetch('http://localhost:8888/api/lock', { method: 'OPTIONS' })
+        .then(r => r.ok)
+        .catch(() => false);
+    }
+
+    lockScreenToggle.addEventListener('change', () => {
+      const on = lockScreenToggle.checked;
+      updateLockToggleUI(on);
+      if (on) {
+        checkLockDaemon().then(available => {
+          lockSetupGuide.style.display = available ? 'none' : 'block';
+        });
+      } else {
+        lockSetupGuide.style.display = 'none';
+      }
       saveSettings();
     });
     document.addEventListener('keydown', (e) => {
@@ -5510,8 +5541,10 @@
     if (typeof savedSettings.showWorldClock === 'boolean') showWorldClock = savedSettings.showWorldClock;
     if (typeof savedSettings.lockScreenOnDone === 'boolean') {
       lockScreenToggle.checked = savedSettings.lockScreenOnDone;
-      lockScreenTrack.style.background = savedSettings.lockScreenOnDone ? '#4CAF50' : 'rgba(255,255,255,0.15)';
-      lockScreenTrack.querySelector('.toggle-knob').style.transform = savedSettings.lockScreenOnDone ? 'translateX(16px)' : 'translateX(0)';
+      updateLockToggleUI(savedSettings.lockScreenOnDone);
+      if (savedSettings.lockScreenOnDone) {
+        checkLockDaemon().then(ok => { lockSetupGuide.style.display = ok ? 'none' : 'block'; });
+      }
     }
 
     lunarToggle.checked = showLunarDate;
