@@ -61,6 +61,17 @@ class Handler(http.server.SimpleHTTPRequestHandler):
 if __name__ == '__main__':
     os.chdir(os.path.dirname(os.path.abspath(__file__)))
 
+    # Check if port is already in use (prevent duplicate instances)
+    import socket
+    sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+    try:
+        sock.bind(('', PORT))
+        sock.close()
+    except OSError:
+        if not DAEMON:
+            print(f'Port {PORT} already in use — another instance may be running.')
+        sys.exit(0)
+
     with http.server.HTTPServer(('', PORT), Handler) as httpd:
         url = f'http://localhost:{PORT}'
         if not DAEMON:
