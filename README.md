@@ -68,15 +68,18 @@ For best results:
 - Hit `F` to enter fullscreen mode.
 - Allow sound so timer alarms can play through the Web Audio API without interruption.
 
-**Recommended: use `start.bat`** for full functionality:
+**Lock Screen on Timer Done** (Windows, optional):
+
+The "Lock screen when done" toggle in Custom Timer triggers a real Windows system lock (Win+L) when the timer finishes — useful for enforcing screen breaks. This works from **any** URL, including `https://bsb3166.github.io/big-clock/`.
+
+Setup (one-time):
 ```
-start.bat              → start server + open browser
-install.bat            → one-click install to Windows auto-startup
+install.bat            → install background service to Windows auto-startup
 uninstall.bat          → remove from startup
 ```
-This serves the app on `http://localhost:8888` and enables the **"Lock screen when done"** toggle in Custom Timer, which triggers Windows system lock (Win+L) when the timer finishes.
+Run `install.bat` once — a tiny background daemon starts on every login (port 8888, no console window). The webpage calls `http://localhost:8888/api/lock` to trigger Win+L. Chrome allows HTTPS pages to access localhost, so it works seamlessly from GitHub Pages.
 
-Run `install.bat` once on any Windows PC — the lock API server runs silently in the background on every login. No extra steps needed after install.
+To also serve the app locally, use `start.bat` (opens browser to `http://localhost:8888`).
 
 ## GitHub Pages Setup
 

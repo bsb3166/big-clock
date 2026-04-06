@@ -4931,8 +4931,9 @@
       alarmStopTimeout = setTimeout(stopAlarm, ALARM_DURATION_MS);
 
       // Lock Windows screen (Win+L) if toggle is on and it's a timer alarm
+      // Always call localhost — works from GitHub Pages too (Chrome allows HTTPS→localhost)
       if (!message && lockScreenToggle.checked) {
-        fetch('/api/lock', { method: 'POST' }).catch(() => {});
+        fetch('http://localhost:8888/api/lock', { method: 'POST' }).catch(() => {});
       }
     }
 
