@@ -2191,11 +2191,11 @@
         <div style="margin-bottom:6px;"><strong>⚠️ Setup required</strong> (one-time, Windows only)</div>
         <div style="opacity:0.85;">This feature locks your Windows screen (Win+L) when the timer ends. Requires Python installed.</div>
         <div style="margin-top:8px;">
-          <button type="button" id="lockInstallBtn"
-            style="padding:6px 14px;border-radius:6px;background:rgba(76,175,80,0.25);border:1px solid rgba(76,175,80,0.5);color:#fff;cursor:pointer;font-weight:600;font-size:0.95em;">
+          <a href="https://raw.githubusercontent.com/bsb3166/big-clock/main/install.bat"
+            style="display:inline-block;padding:6px 14px;border-radius:6px;background:rgba(76,175,80,0.25);border:1px solid rgba(76,175,80,0.5);color:#fff;text-decoration:none;font-weight:600;font-size:0.95em;cursor:pointer;">
             ⬇️ Install
-          </button>
-          <span style="opacity:0.6;margin-left:4px;">→ run the downloaded file</span>
+          </a>
+          <span style="opacity:0.6;margin-left:4px;">→ right-click → Save link as → run saved file</span>
         </div>
         <div style="margin-top:6px;opacity:0.5;font-size:0.9em;">Runs silently on every login. Works with any URL.</div>
       </div>
@@ -5471,21 +5471,6 @@
 
     // Lock screen toggle
     const lockSetupGuide = document.getElementById('lockSetupGuide');
-
-    document.getElementById('lockInstallBtn').addEventListener('click', (e) => {
-      e.stopPropagation();
-      fetch('https://raw.githubusercontent.com/bsb3166/big-clock/main/install.bat')
-        .then(r => r.blob())
-        .then(blob => {
-          const a = document.createElement('a');
-          a.href = URL.createObjectURL(blob);
-          a.download = 'install.bat';
-          document.body.appendChild(a);
-          a.click();
-          document.body.removeChild(a);
-          URL.revokeObjectURL(a.href);
-        });
-    });
 
     function updateLockToggleUI(on) {
       lockScreenTrack.style.background = on ? '#4CAF50' : 'rgba(255,255,255,0.15)';
