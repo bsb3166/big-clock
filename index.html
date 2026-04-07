@@ -5591,12 +5591,28 @@
         .catch(() => false);
     }
 
+    let lockStatusInterval = null;
+    function startLockStatusPolling() {
+      stopLockStatusPolling();
+      // Check immediately, then every 30s
+      checkLockDaemon().then(ok => updateLockStatus(ok));
+      lockStatusInterval = setInterval(() => {
+        if (lockScreenToggle.checked) {
+          checkLockDaemon().then(ok => updateLockStatus(ok));
+        }
+      }, 30000);
+    }
+    function stopLockStatusPolling() {
+      if (lockStatusInterval) { clearInterval(lockStatusInterval); lockStatusInterval = null; }
+    }
+
     lockScreenToggle.addEventListener('change', () => {
       const on = lockScreenToggle.checked;
       updateLockToggleUI(on);
       if (on) {
-        checkLockDaemon().then(available => updateLockStatus(available));
+        startLockStatusPolling();
       } else {
+        stopLockStatusPolling();
         updateLockStatus(false);
       }
       saveSettings();
@@ -5650,7 +5666,7 @@
       lockScreenToggle.checked = savedSettings.lockScreenOnDone;
       updateLockToggleUI(savedSettings.lockScreenOnDone);
       if (savedSettings.lockScreenOnDone) {
-        checkLockDaemon().then(ok => updateLockStatus(ok));
+        startLockStatusPolling();
       }
     }
 
