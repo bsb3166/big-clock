@@ -899,6 +899,26 @@
       margin: 0;
       line-height: 1;
     }
+    .moon-phase {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 6px;
+      margin: 8px 0 4px;
+    }
+    .moon-phase img {
+      width: clamp(60px, 8vw, 100px);
+      height: auto;
+      border-radius: 50%;
+      filter: drop-shadow(0 0 8px rgba(255,255,200,0.3));
+    }
+    .moon-phase-name {
+      font-size: clamp(11px, 1.2vw, 16px);
+      font-weight: 600;
+      letter-spacing: 0.06em;
+      color: var(--muted2);
+      text-transform: uppercase;
+    }
 
     .tz {
       margin: 0;
@@ -2033,6 +2053,14 @@
       </div>
       <div class="divider"></div>
       <div class="ios-toggle-wrap">
+        <label for="moonPhaseToggle">Moon phase</label>
+        <label class="ios-toggle">
+          <input type="checkbox" id="moonPhaseToggle" checked />
+          <span class="ios-slider"></span>
+        </label>
+      </div>
+      <div class="divider"></div>
+      <div class="ios-toggle-wrap">
         <label for="tzToggle">Time Zone</label>
         <label class="ios-toggle">
           <input type="checkbox" id="tzToggle" checked />
@@ -2117,6 +2145,10 @@
       </div>
       <div class="date" id="date">Sunday, March 29, 2026</div>
       <div class="lunar-date" id="lunarDate">丙午年二月十二</div>
+      <div class="moon-phase" id="moonPhase">
+        <img id="moonPhaseImg" src="https://copyexchange.com/liveClock/img/fullMoon.png" alt="Moon">
+        <div class="moon-phase-name" id="moonPhaseName">Full Moon</div>
+      </div>
       <div class="tz" id="tz">PDT · PACIFIC DAYLIGHT TIME</div>
     </div>
 
@@ -2263,6 +2295,10 @@
     const alarmSoundTrigger = document.getElementById('alarmSoundTrigger');
     const bgInput = document.getElementById('bgInput');
     const lunarToggle = document.getElementById('lunarToggle');
+    const moonPhaseToggle = document.getElementById('moonPhaseToggle');
+    const moonPhaseEl = document.getElementById('moonPhase');
+    const moonPhaseImgEl = document.getElementById('moonPhaseImg');
+    const moonPhaseNameEl = document.getElementById('moonPhaseName');
     const ytToggle = document.getElementById('ytToggle');
     const dateToggle = document.getElementById('dateToggle');
     const tzToggle = document.getElementById('tzToggle');
@@ -2620,6 +2656,7 @@
     let ytIsSeeking = false;
     let ytVolumeLevel = 100;
     let showLunarDate = true;
+    let showMoonPhase = true;
     let showYt = true;
     let showDateDisplay = true;
     let showTz = true;
@@ -2927,6 +2964,7 @@
         ytUrl: ytState.url,
         ytVolume: ytVolumeLevel,
         showLunarDate,
+        showMoonPhase,
         showYt,
         showDateDisplay,
         showTz,
@@ -5073,6 +5111,25 @@
       }
     }
 
+    const MOON_PHASES = [
+      { name: 'New Moon',        emoji: '\u{1F311}', img: 'https://copyexchange.com/liveClock/img/newMoon.png' },
+      { name: 'Waxing Crescent', emoji: '\u{1F312}', img: 'https://copyexchange.com/liveClock/img/newCrescent1.png' },
+      { name: 'First Quarter',   emoji: '\u{1F313}', img: 'https://copyexchange.com/liveClock/img/firstQuarter1.png' },
+      { name: 'Waxing Gibbous',  emoji: '\u{1F314}', img: 'https://copyexchange.com/liveClock/img/waxingGibbous.png' },
+      { name: 'Full Moon',       emoji: '\u{1F315}', img: 'https://copyexchange.com/liveClock/img/fullMoon.png' },
+      { name: 'Waning Gibbous',  emoji: '\u{1F316}', img: 'https://copyexchange.com/liveClock/img/waningGibbous.png' },
+      { name: 'Last Quarter',    emoji: '\u{1F317}', img: 'https://copyexchange.com/liveClock/img/lastQuarter1.png' },
+      { name: 'Waning Crescent', emoji: '\u{1F318}', img: 'https://copyexchange.com/liveClock/img/oldCrescent1.png' }
+    ];
+
+    function getMoonPhase(date) {
+      const LUNAR_MONTH = 29.53059;
+      const REF_NEW_MOON = new Date(2000, 0, 6).getTime(); // Jan 6, 2000
+      const daysSince = (date.getTime() - REF_NEW_MOON) / (1000 * 60 * 60 * 24);
+      const age = ((daysSince % LUNAR_MONTH) + LUNAR_MONTH) % LUNAR_MONTH;
+      return Math.floor((age / LUNAR_MONTH) * 8) % 8;
+    }
+
     function updateClock() {
       const now = new Date();
       const h24 = now.getHours();
@@ -5115,15 +5172,29 @@
         dateStyle: 'long'
       });
 
-      dateEl.textContent = dateFmt.format(now);
+      const moonIdx = getMoonPhase(now);
+      const moon = MOON_PHASES[moonIdx];
+
+      dateEl.textContent = dateFmt.format(now) + '  ' + moon.emoji;
       dateEl.style.display = showDateDisplay ? 'block' : 'none';
-      
+
       if (lunarDateEl) {
         if (showLunarDate) {
           lunarDateEl.textContent = lunarFmt.format(now);
           lunarDateEl.style.display = 'block';
         } else {
           lunarDateEl.style.display = 'none';
+        }
+      }
+
+      if (moonPhaseEl) {
+        if (showMoonPhase) {
+          moonPhaseImgEl.src = moon.img;
+          moonPhaseImgEl.alt = moon.name;
+          moonPhaseNameEl.textContent = moon.name;
+          moonPhaseEl.style.display = 'flex';
+        } else {
+          moonPhaseEl.style.display = 'none';
         }
       }
       
@@ -5283,6 +5354,12 @@
 
     lunarToggle.addEventListener('change', () => {
       showLunarDate = lunarToggle.checked;
+      updateClock();
+      saveSettings();
+    });
+
+    moonPhaseToggle.addEventListener('change', () => {
+      showMoonPhase = moonPhaseToggle.checked;
       updateClock();
       saveSettings();
     });
@@ -5536,6 +5613,7 @@
     if (typeof savedSettings.showLunarDate === 'boolean') {
       showLunarDate = savedSettings.showLunarDate;
     }
+    if (typeof savedSettings.showMoonPhase === 'boolean') showMoonPhase = savedSettings.showMoonPhase;
     if (typeof savedSettings.showYt === 'boolean') showYt = savedSettings.showYt;
     if (typeof savedSettings.showDateDisplay === 'boolean') showDateDisplay = savedSettings.showDateDisplay;
     if (typeof savedSettings.showTz === 'boolean') showTz = savedSettings.showTz;
@@ -5549,6 +5627,7 @@
     }
 
     lunarToggle.checked = showLunarDate;
+    moonPhaseToggle.checked = showMoonPhase;
     ytToggle.checked = showYt;
     dateToggle.checked = showDateDisplay;
     tzToggle.checked = showTz;
