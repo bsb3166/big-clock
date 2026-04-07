@@ -2220,15 +2220,16 @@
           <span class="toggle-knob" style="position:absolute;top:2px;left:2px;width:16px;height:16px;border-radius:50%;background:#fff;transition:transform 0.2s;"></span>
         </span>
       </label>
+      <div id="lockDaemonStatus" style="display:none;margin-top:4px;font-size:0.75em;opacity:0.7;"></div>
       <div id="lockSetupGuide" style="display:none;margin-top:8px;padding:10px 12px;border-radius:8px;background:rgba(255,165,0,0.12);border:1px solid rgba(255,165,0,0.3);font-size:0.78em;line-height:1.5;">
-        <div style="margin-bottom:6px;"><strong>⚠️ Setup required</strong> (one-time, Windows only)</div>
+        <div style="margin-bottom:6px;"><strong>Setup required</strong> (one-time, Windows only)</div>
         <div style="opacity:0.85;">This feature locks your Windows screen (Win+L) when the timer ends. Requires Python installed.</div>
         <div style="margin-top:8px;">
           <a href="https://raw.githubusercontent.com/bsb3166/big-clock/main/install.bat"
             style="display:inline-block;padding:6px 14px;border-radius:6px;background:rgba(76,175,80,0.25);border:1px solid rgba(76,175,80,0.5);color:#fff;text-decoration:none;font-weight:600;font-size:0.95em;cursor:pointer;">
-            ⬇️ Install
+            Install
           </a>
-          <span style="opacity:0.6;margin-left:4px;">→ right-click → Save link as → run saved file</span>
+          <span style="opacity:0.6;margin-left:4px;">right-click, Save link as, run saved file</span>
         </div>
         <div style="margin-top:6px;opacity:0.5;font-size:0.9em;">Runs silently on every login. Works with any URL.</div>
       </div>
@@ -4984,7 +4985,18 @@
       // Lock Windows screen (Win+L) if toggle is on and it's a timer alarm
       // Always call localhost — works from GitHub Pages too (Chrome allows HTTPS→localhost)
       if (!message && lockScreenToggle.checked) {
-        fetch('http://localhost:8888/api/lock', { method: 'POST' }).catch(() => {});
+        fetch('http://localhost:8888/api/lock', { method: 'POST' })
+          .then(r => { if (!r.ok) throw new Error(); })
+          .catch(() => {
+            // Lock failed — daemon not running, show brief notification
+            const note = document.createElement('div');
+            note.textContent = 'Lock screen failed — daemon not running. Toggle off/on to see setup guide.';
+            Object.assign(note.style, { position:'fixed', bottom:'20px', left:'50%', transform:'translateX(-50%)',
+              padding:'10px 20px', background:'rgba(244,67,54,0.9)', color:'#fff', borderRadius:'8px',
+              fontSize:'0.85em', zIndex:'99999', pointerEvents:'none' });
+            document.body.appendChild(note);
+            setTimeout(() => note.remove(), 5000);
+          });
       }
     }
 
@@ -5549,15 +5561,33 @@
 
     // Lock screen toggle
     const lockSetupGuide = document.getElementById('lockSetupGuide');
+    const lockDaemonStatus = document.getElementById('lockDaemonStatus');
 
     function updateLockToggleUI(on) {
       lockScreenTrack.style.background = on ? '#4CAF50' : 'rgba(255,255,255,0.15)';
       lockScreenTrack.querySelector('.toggle-knob').style.transform = on ? 'translateX(16px)' : 'translateX(0)';
     }
 
+    function updateLockStatus(available) {
+      if (!lockScreenToggle.checked) {
+        lockDaemonStatus.style.display = 'none';
+        lockSetupGuide.style.display = 'none';
+        return;
+      }
+      lockDaemonStatus.style.display = 'block';
+      if (available) {
+        lockDaemonStatus.innerHTML = '<span style="color:#4CAF50;">&#x25CF;</span> Lock daemon connected';
+        lockSetupGuide.style.display = 'none';
+      } else {
+        lockDaemonStatus.innerHTML = '<span style="color:#F44336;">&#x25CF;</span> Lock daemon not detected';
+        lockSetupGuide.style.display = 'block';
+      }
+    }
+
     function checkLockDaemon() {
-      return fetch('http://localhost:8888/api/lock', { method: 'OPTIONS' })
-        .then(r => r.ok)
+      return fetch('http://localhost:8888/api/health', { method: 'GET' })
+        .then(r => r.ok ? r.json() : Promise.reject())
+        .then(data => data && data.service === 'big-clock-daemon')
         .catch(() => false);
     }
 
@@ -5565,11 +5595,9 @@
       const on = lockScreenToggle.checked;
       updateLockToggleUI(on);
       if (on) {
-        checkLockDaemon().then(available => {
-          lockSetupGuide.style.display = available ? 'none' : 'block';
-        });
+        checkLockDaemon().then(available => updateLockStatus(available));
       } else {
-        lockSetupGuide.style.display = 'none';
+        updateLockStatus(false);
       }
       saveSettings();
     });
@@ -5622,7 +5650,7 @@
       lockScreenToggle.checked = savedSettings.lockScreenOnDone;
       updateLockToggleUI(savedSettings.lockScreenOnDone);
       if (savedSettings.lockScreenOnDone) {
-        checkLockDaemon().then(ok => { lockSetupGuide.style.display = ok ? 'none' : 'block'; });
+        checkLockDaemon().then(ok => updateLockStatus(ok));
       }
     }
 

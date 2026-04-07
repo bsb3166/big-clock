@@ -22,6 +22,12 @@ except AttributeError:
 
 
 class Handler(http.server.SimpleHTTPRequestHandler):
+    def do_GET(self):
+        if self.path == '/api/health':
+            self._json(200, {'ok': True, 'service': 'big-clock-daemon'})
+            return
+        super().do_GET()
+
     def do_OPTIONS(self):
         self.send_response(200)
         self._cors()
