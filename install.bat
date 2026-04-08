@@ -29,7 +29,7 @@ echo        Found: %PYTHONW%
 :: ---- Step 2: Kill existing instances ----
 echo  [2/5] Cleaning up old instances ...
 set "KILLED=0"
-for /f "tokens=2" %%p in ('netstat -ano 2^>nul ^| findstr "LISTENING" ^| findstr ":8888 "') do (
+for /f "tokens=5" %%p in ('netstat -ano 2^>nul ^| findstr "LISTENING" ^| findstr ":8888 "') do (
     taskkill /PID %%p /F >nul 2>&1
     if not errorlevel 1 set "KILLED=1"
 )
@@ -70,7 +70,7 @@ start "" "%PYTHONW%" "%SCRIPT%" --daemon
 
 :: Verify it started
 timeout /t 2 /nobreak >nul
-powershell -Command "try { $r = Invoke-WebRequest -Uri 'http://localhost:8888/api/lock' -Method OPTIONS -UseBasicParsing -TimeoutSec 3; exit 0 } catch { exit 1 }" 2>nul
+powershell -Command "try { $r = Invoke-WebRequest -Uri 'http://localhost:8888/api/health' -UseBasicParsing -TimeoutSec 3; exit 0 } catch { exit 1 }" 2>nul
 if errorlevel 1 (
     echo  [WARN] Service may not have started correctly.
     echo         Try restarting your computer.
