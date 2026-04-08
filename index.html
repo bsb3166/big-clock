@@ -5576,10 +5576,10 @@
       }
       lockDaemonStatus.style.display = 'block';
       if (available) {
-        lockDaemonStatus.innerHTML = '<span style="color:#4CAF50;">&#x25CF;</span> Lock daemon connected';
+        lockDaemonStatus.innerHTML = '<span style="color:#4CAF50;">&#x25CF;</span> Connected <a href="https://raw.githubusercontent.com/bsb3166/big-clock/main/uninstall.bat" style="opacity:0.5;color:inherit;margin-left:8px;font-size:0.9em;">uninstall</a>';
         lockSetupGuide.style.display = 'none';
       } else {
-        lockDaemonStatus.innerHTML = '<span style="color:#F44336;">&#x25CF;</span> Lock daemon not detected';
+        lockDaemonStatus.innerHTML = '<span style="color:#F44336;">&#x25CF;</span> Not detected';
         lockSetupGuide.style.display = 'block';
       }
     }
