@@ -80,6 +80,8 @@ uninstall.bat          → remove from startup
 ```
 Run `install.bat` once — a tiny background daemon starts on every login (port 8888, no console window). The webpage calls `http://localhost:8888/api/lock` to trigger Win+L. Chrome allows HTTPS pages to access localhost, so it works seamlessly from GitHub Pages.
 
+If Python is not installed, `install.bat` will offer to download and install it automatically (prompts for confirmation first). A live status indicator (green/red dot) shows daemon connection status when the toggle is enabled. Uninstall link is shown next to the status when connected.
+
 To also serve the app locally, use `start.bat` (opens browser to `http://localhost:8888`).
 
 ## GitHub Pages Setup
