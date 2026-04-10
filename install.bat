@@ -16,14 +16,52 @@ echo.
 
 :: ---- Step 1: Check Python ----
 echo  [1/5] Checking Python ...
+set "PYTHONW="
 for /f "delims=" %%i in ('where pythonw 2^>nul') do set "PYTHONW=%%i"
-if "%PYTHONW%"=="" (
-    echo  [ERROR] Python not found. Please install Python and add to PATH.
-    echo          https://www.python.org/downloads/
-    echo.
+if not "%PYTHONW%"=="" goto :python_ok
+
+echo        Python not found.
+echo.
+set /p "DLPY=  Download and install Python automatically? [Y/n]: "
+if /i "%DLPY%"=="n" goto :python_manual
+if /i "%DLPY%"=="no" goto :python_manual
+
+set "PYINSTALLER=%TEMP%\python-installer.exe"
+set "PYURL=https://www.python.org/ftp/python/3.12.4/python-3.12.4-amd64.exe"
+echo.
+echo  Downloading Python 3.12.4 ...
+powershell -Command "Invoke-WebRequest -Uri '%PYURL%' -OutFile '%PYINSTALLER%' -UseBasicParsing" 2>nul
+if not exist "%PYINSTALLER%" (
+    echo  [ERROR] Download failed. Check your internet connection.
+    echo          Install manually: https://www.python.org/downloads/
     pause
     exit /b 1
 )
+echo  Running Python installer (this may take a minute) ...
+"%PYINSTALLER%" /passive InstallAllUsers=0 PrependPath=1 Include_launcher=1
+del "%PYINSTALLER%" >nul 2>&1
+
+:: Try PATH first, then fall back to default install location
+for /f "delims=" %%i in ('where pythonw 2^>nul') do set "PYTHONW=%%i"
+if "%PYTHONW%"=="" (
+    for /f "delims=" %%i in ('dir /b /s "%LOCALAPPDATA%\Programs\Python\pythonw.exe" 2^>nul') do set "PYTHONW=%%i"
+)
+if "%PYTHONW%"=="" (
+    echo  [ERROR] Python installed but pythonw not found.
+    echo          Please close and reopen this installer.
+    pause
+    exit /b 1
+)
+goto :python_ok
+
+:python_manual
+echo.
+echo  Cancelled. Install Python manually: https://www.python.org/downloads/
+echo.
+pause
+exit /b 1
+
+:python_ok
 echo        Found: %PYTHONW%
 
 :: ---- Step 2: Kill existing instances ----
