@@ -3497,15 +3497,46 @@
       timeEl.innerHTML = `
         <svg class="premium-svg" viewBox="0 0 520 540" xmlns="http://www.w3.org/2000/svg" overflow="visible">
           <defs>
-            <!-- Brushed aluminum case gradient -->
+            <!-- Polished aluminum case — multi-stop reflection curve.
+                 Real polished metal reflects the environment: bright at the top
+                 (sky), darker mid-upper (upper wall), brighter horizon band,
+                 darker lower (floor), near-black at the base. Seven stops
+                 recreate that specular profile. -->
             <linearGradient id="pCaseGrad" x1="0%" y1="0%" x2="0%" y2="100%">
-              <stop offset="0%"  stop-color="${P.caseGradTop}"/>
-              <stop offset="50%" stop-color="${P.caseGradMid}"/>
-              <stop offset="100%" stop-color="${P.caseGradBot}"/>
+              <stop offset="0%"   stop-color="#fcfcfa"/>
+              <stop offset="8%"   stop-color="#ededea"/>
+              <stop offset="22%"  stop-color="#c5c5c0"/>
+              <stop offset="42%"  stop-color="#e6e6e1"/>
+              <stop offset="58%"  stop-color="#d0d0cb"/>
+              <stop offset="78%"  stop-color="#a4a49e"/>
+              <stop offset="100%" stop-color="#7c7c76"/>
             </linearGradient>
             <linearGradient id="pCaseHighlight" x1="0%" y1="0%" x2="0%" y2="100%">
-              <stop offset="0%"  stop-color="rgba(255,255,255,0.85)"/>
-              <stop offset="35%" stop-color="rgba(255,255,255,0)"/>
+              <stop offset="0%"  stop-color="rgba(255,255,255,0.9)"/>
+              <stop offset="30%" stop-color="rgba(255,255,255,0)"/>
+            </linearGradient>
+            <!-- Off-center vertical specular streaks — curved-surface highlights. -->
+            <linearGradient id="pCaseSpec" x1="0%" y1="0%" x2="100%" y2="0%">
+              <stop offset="0%"   stop-color="rgba(255,255,255,0)"/>
+              <stop offset="22%"  stop-color="rgba(255,255,255,0)"/>
+              <stop offset="32%"  stop-color="rgba(255,255,255,0.32)"/>
+              <stop offset="40%"  stop-color="rgba(255,255,255,0)"/>
+              <stop offset="60%"  stop-color="rgba(255,255,255,0)"/>
+              <stop offset="70%"  stop-color="rgba(255,255,255,0.18)"/>
+              <stop offset="80%"  stop-color="rgba(255,255,255,0)"/>
+            </linearGradient>
+            <!-- Radial edge darkening: side vignette gives the squircle a
+                 convex/machined-from-block feel instead of flat panel. -->
+            <radialGradient id="pCaseEdge" cx="50%" cy="50%" r="70%">
+              <stop offset="55%"  stop-color="rgba(0,0,0,0)"/>
+              <stop offset="100%" stop-color="rgba(0,0,0,0.26)"/>
+            </radialGradient>
+            <!-- Top rim highlight — thin bright line along the top edge of the
+                 machined bevel, fading toward the sides and bottom. -->
+            <linearGradient id="pCaseRim" x1="0%" y1="0%" x2="0%" y2="100%">
+              <stop offset="0%"   stop-color="rgba(255,255,255,0.95)"/>
+              <stop offset="12%"  stop-color="rgba(255,255,255,0.45)"/>
+              <stop offset="30%"  stop-color="rgba(255,255,255,0)"/>
             </linearGradient>
             <!-- Inner dial gradient -->
             <radialGradient id="pDialGrad" cx="50%" cy="40%" r="72%">
@@ -3566,10 +3597,17 @@
           </defs>
 
           <g filter="url(#pCaseShadow)">
-            <!-- Squircle case -->
-            <rect x="0" y="10" width="${P.caseW}" height="${P.caseH}" rx="${P.caseR}" ry="${P.caseR}" fill="url(#pCaseGrad)" stroke="rgba(0,0,0,0.12)" stroke-width="0.8"/>
-            <!-- Top highlight sheen -->
-            <rect x="6" y="16" width="${P.caseW - 12}" height="${P.caseH - 12}" rx="${P.caseR - 4}" ry="${P.caseR - 4}" fill="url(#pCaseHighlight)" opacity="0.55"/>
+            <!-- Polished aluminum case — layered to achieve machined-block look.
+                 1. Base: multi-stop metal reflection gradient.
+                 2. Edge radial darkening: convex side falloff.
+                 3. Vertical specular streaks: curved-surface highlights.
+                 4. Top sheen: soft upper wash.
+                 5. Rim highlight stroke: crisp machined edge catching light. -->
+            <rect x="0" y="10" width="${P.caseW}" height="${P.caseH}" rx="${P.caseR}" ry="${P.caseR}" fill="url(#pCaseGrad)" stroke="rgba(0,0,0,0.18)" stroke-width="1"/>
+            <rect x="0" y="10" width="${P.caseW}" height="${P.caseH}" rx="${P.caseR}" ry="${P.caseR}" fill="url(#pCaseEdge)"/>
+            <rect x="0" y="10" width="${P.caseW}" height="${P.caseH}" rx="${P.caseR}" ry="${P.caseR}" fill="url(#pCaseSpec)" opacity="0.85"/>
+            <rect x="6" y="16" width="${P.caseW - 12}" height="${P.caseH - 12}" rx="${P.caseR - 4}" ry="${P.caseR - 4}" fill="url(#pCaseHighlight)" opacity="0.42"/>
+            <rect x="1.5" y="11.5" width="${P.caseW - 3}" height="${P.caseH - 3}" rx="${P.caseR - 1.5}" ry="${P.caseR - 1.5}" fill="none" stroke="url(#pCaseRim)" stroke-width="1.4"/>
 
             <!-- Inner dial face -->
             <circle cx="${cx}" cy="${cy}" r="${P.dialR}" fill="url(#pDialGrad)" stroke="${P.dialRim}" stroke-width="1.2"/>
