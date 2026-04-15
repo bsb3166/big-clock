@@ -547,7 +547,8 @@
     .time.analog-style,
     .time.rolex-style,
     .time.dotmatrix-style,
-    .time.cuckoo-style {
+    .time.cuckoo-style,
+    .time.premium-style {
       display: block;
       width: 500px;
       height: 500px;
@@ -558,6 +559,22 @@
     }
     .time.rolex-style { overflow: visible; }
     .time.cuckoo-style { overflow: visible; height: auto; margin-top: -60px; }
+    .time.premium-style {
+      width: 560px;
+      height: 560px;
+      overflow: visible;
+      animation: premiumReveal 900ms cubic-bezier(.2,.7,.2,1) both;
+    }
+    @keyframes premiumReveal {
+      0%   { opacity: 0; transform: translateY(10px) scale(0.985); }
+      100% { opacity: 1; transform: translateY(0)    scale(1); }
+    }
+    .premium-svg { width: 100%; height: 100%; display: block; }
+    .premium-tick { transition: fill 600ms ease, opacity 600ms ease; }
+    .premium-tick.lit-hour   { fill: var(--premium-warm); opacity: 1; }
+    .premium-tick.lit-minute { fill: var(--premium-warm); opacity: 0.95; }
+    .premium-tick.lit-second { fill: var(--premium-warm); opacity: 0.85; }
+    .premium-digit { transition: fill 600ms ease, opacity 600ms ease; }
 
     .analog-svg {
       width: 100%;
@@ -1957,6 +1974,7 @@
           <option value="cuckoo">Cuckoo Clock</option>
           <option value="pixelart">Pixel Art Scene</option>
           <option value="timer">Timer</option>
+          <option value="premium">Premium Minimal</option>
         </select>
         <div class="custom-dropdown" id="clockStyleDropdown">
           <button class="dropdown-trigger" id="clockStyleTrigger" type="button">Default</button>
@@ -1976,6 +1994,7 @@
             <div class="dropdown-item" data-value="cuckoo">Cuckoo Clock</div>
             <div class="dropdown-item" data-value="pixelart">Pixel Art Scene</div>
             <div class="dropdown-item" data-value="timer">Timer</div>
+            <div class="dropdown-item" data-value="premium">Premium Minimal</div>
           </div>
         </div>
       </div>
@@ -3069,6 +3088,12 @@
           spacing: '-0.02em',
           weight: '700',
           transform: 'none'
+        },
+        premium: {
+          font: '"Helvetica Neue", Inter, Arial, sans-serif',
+          spacing: '0',
+          weight: '400',
+          transform: 'none'
         }
       };
       const chosen = styleMap[styleKey] || styleMap.default;
@@ -3318,6 +3343,216 @@
             <div style="font-size:min(3vw, 1rem);margin-top:0.5em;letter-spacing:0.1em;color:${statusColor}">${statusText}</div>
           </div>
         </div>
+      `;
+    }
+
+    // ============================================================
+    // Premium Minimal Clock — no hands, squircle case
+    // Inspired by Balmuda "Light Hour": illumination-only, painted-glow
+    // quality, and pendulum-like second motion (Foucault reference).
+    // Tunable constants (safe to adjust)
+    // ============================================================
+    const PREMIUM = {
+      // Case geometry
+      caseW: 520, caseH: 520, caseR: 96,
+
+      // Dial
+      dialCx: 260, dialCy: 260, dialR: 210,
+      numberR: 160,
+      minuteTickR: 202,
+
+      // Tick sizes
+      minuteTickW: 1.4, minuteTickLen: 8,
+      hourTickW: 2.2,   hourTickLen: 14,
+      minuteLitW: 2.4,
+      secondLitW: 3.0,
+      secondLitLen: 13,
+
+      // Colors — muted warm ochre, not saturated LED
+      caseGradTop: '#f4f4f1',
+      caseGradMid: '#dcdcd7',
+      caseGradBot: '#a8a8a3',
+      dialGradTop: '#fafaf7',
+      dialGradBot: '#e3e3de',
+      dialRim: 'rgba(0,0,0,0.10)',
+      numberColor: '#2a2a2a',
+      tickColor: '#3a3a3a',
+      tickColorDim: 'rgba(58,58,58,0.55)',
+      warmGlow: '#f2b86a',                       // painted ochre — softer, less saturated
+      warmGlowStrong: '#e89a3a',                 // deeper ochre for hour / second peak
+      warmGlowCore: '#fff0d4',
+
+      // Glow intensity — tuned for "painted not lit" diffusion
+      hourGlowStdDev: 5.5,
+      minuteGlowStdDev: 3.0,
+      secondGlowStdDev: 2.4,
+      litOpacity: 0.88                           // lit elements not at full opacity — painted feel
+    };
+
+    // Pendulum easing (Foucault reference): slow at extremes, faster in middle
+    function premiumPendulumEase(t) {
+      // t in [0,1]. Cosine-based SHM: 0 → 1 with soft start and end.
+      return (1 - Math.cos(Math.PI * t)) / 2;
+    }
+
+    function renderPremiumClock(h24, mins, secs, ms) {
+      const P = PREMIUM;
+      const cx = P.dialCx, cy = P.dialCy;
+      const hour12 = h24 % 12 || 12;
+
+      const pt = (r, deg) => {
+        const a = (deg - 90) * Math.PI / 180;
+        return [cx + r * Math.cos(a), cy + r * Math.sin(a)];
+      };
+
+      // Pendulum-eased sub-second progress (Foucault-inspired slow sweep)
+      const subSec = ms / 1000;
+      const eased = premiumPendulumEase(subSec);
+      const currSecIdx = secs % 60;
+      const nextSecIdx = (currSecIdx + 1) % 60;
+      // Crossfade opacities — current tick fades out as next tick fades in,
+      // with eased progress creating a pendulum-like handoff.
+      const currSecOpacity = 1 - eased;
+      const nextSecOpacity = eased;
+
+      // ---- 60 minute ticks: progressive minute fill + pendulum-eased second crossfade ----
+      let ticks = '';
+      for (let i = 0; i < 60; i++) {
+        const a = i * 6;
+        const isHourTick = i % 5 === 0;
+        const outerR = P.minuteTickR;
+        const len = isHourTick ? P.hourTickLen : P.minuteTickLen;
+        const [x1, y1] = pt(outerR, a);
+        const [x2, y2] = pt(outerR - len, a);
+
+        // Base tick (always drawn)
+        const isLitMinute = i <= mins;
+        let baseStroke, baseW, baseFilter = '', baseOp = '0.82';
+        if (isLitMinute) {
+          baseStroke = P.warmGlow;
+          baseW = isHourTick ? P.hourTickW + 0.4 : P.minuteLitW;
+          baseFilter = 'filter="url(#pMinuteGlow)"';
+          baseOp = String(P.litOpacity);
+        } else {
+          baseStroke = isHourTick ? P.tickColor : P.tickColorDim;
+          baseW = isHourTick ? P.hourTickW : P.minuteTickW;
+        }
+        ticks += `<line x1="${x1.toFixed(2)}" y1="${y1.toFixed(2)}" x2="${x2.toFixed(2)}" y2="${y2.toFixed(2)}" stroke="${baseStroke}" stroke-width="${baseW}" stroke-linecap="round" opacity="${baseOp}" ${baseFilter}/>`;
+
+        // Overlay second highlight (longer, warmer, pendulum-faded)
+        if (i === currSecIdx || i === nextSecIdx) {
+          const [sx1, sy1] = pt(outerR + 3, a);
+          const [sx2, sy2] = pt(outerR - P.secondLitLen, a);
+          const op = (i === currSecIdx ? currSecOpacity : nextSecOpacity) * P.litOpacity;
+          ticks += `<line x1="${sx1.toFixed(2)}" y1="${sy1.toFixed(2)}" x2="${sx2.toFixed(2)}" y2="${sy2.toFixed(2)}" stroke="${P.warmGlowStrong}" stroke-width="${P.secondLitW}" stroke-linecap="round" opacity="${op.toFixed(3)}" filter="url(#pSecondGlow)"/>`;
+        }
+      }
+
+      // ---- 1..12 numbers, with current hour painted with ochre glow ----
+      let nums = '';
+      for (let i = 1; i <= 12; i++) {
+        const a = i * 30;
+        const [nx, ny] = pt(P.numberR, a);
+        const isLitHour = i === hour12;
+        const fill = isLitHour ? P.warmGlowStrong : P.numberColor;
+        const weight = isLitHour ? '600' : '400';
+        const filter = isLitHour ? 'filter="url(#pHourGlow)"' : '';
+        const opacity = isLitHour ? P.litOpacity : 1;
+        nums += `<text x="${nx.toFixed(2)}" y="${ny.toFixed(2)}" text-anchor="middle" dominant-baseline="central" font-size="30" font-weight="${weight}" font-family="'Helvetica Neue','Inter',Arial,sans-serif" fill="${fill}" letter-spacing="0.5" opacity="${opacity}" ${filter}>${i}</text>`;
+      }
+
+      // ---- Day/night icon above center (subtle ambient element) ----
+      const isDay = h24 >= 6 && h24 < 18;
+      const iconY = cy - 60;
+      const dayNightIcon = isDay
+        ? `<g opacity="0.55" transform="translate(${cx},${iconY})">
+             <circle cx="0" cy="0" r="5" fill="#e0a050"/>
+             ${[0,45,90,135,180,225,270,315].map(a => {
+               const [x1,y1] = [Math.cos(a*Math.PI/180)*9,  Math.sin(a*Math.PI/180)*9];
+               const [x2,y2] = [Math.cos(a*Math.PI/180)*13, Math.sin(a*Math.PI/180)*13];
+               return `<line x1="${x1.toFixed(2)}" y1="${y1.toFixed(2)}" x2="${x2.toFixed(2)}" y2="${y2.toFixed(2)}" stroke="#e0a050" stroke-width="1.5" stroke-linecap="round"/>`;
+             }).join('')}
+           </g>`
+        : `<g opacity="0.6" transform="translate(${cx},${iconY})">
+             <path d="M 5,-9 A 11,11 0 1,0 5,9 A 8,8 0 1,1 5,-9 Z" fill="#6a6a66"/>
+           </g>`;
+
+      timeEl.classList.add('premium-style');
+      timeEl.classList.remove('flip-style','led-style','led-green-style','led-blue-style','led-orange-style','led-mixed-style','segment-style','analog-style','rolex-style','dotmatrix-style');
+      timeEl.style.setProperty('--premium-warm', P.warmGlow);
+
+      timeEl.innerHTML = `
+        <svg class="premium-svg" viewBox="0 0 520 540" xmlns="http://www.w3.org/2000/svg" overflow="visible">
+          <defs>
+            <!-- Brushed aluminum case gradient -->
+            <linearGradient id="pCaseGrad" x1="0%" y1="0%" x2="0%" y2="100%">
+              <stop offset="0%"  stop-color="${P.caseGradTop}"/>
+              <stop offset="50%" stop-color="${P.caseGradMid}"/>
+              <stop offset="100%" stop-color="${P.caseGradBot}"/>
+            </linearGradient>
+            <linearGradient id="pCaseHighlight" x1="0%" y1="0%" x2="0%" y2="100%">
+              <stop offset="0%"  stop-color="rgba(255,255,255,0.85)"/>
+              <stop offset="35%" stop-color="rgba(255,255,255,0)"/>
+            </linearGradient>
+            <!-- Inner dial gradient -->
+            <radialGradient id="pDialGrad" cx="50%" cy="40%" r="72%">
+              <stop offset="0%"   stop-color="${P.dialGradTop}"/>
+              <stop offset="100%" stop-color="${P.dialGradBot}"/>
+            </radialGradient>
+            <!-- Soft ambient drop shadow for whole device -->
+            <filter id="pCaseShadow" x="-30%" y="-30%" width="160%" height="160%">
+              <feDropShadow dx="0" dy="16" stdDeviation="20" flood-color="#000" flood-opacity="0.28"/>
+              <feDropShadow dx="0" dy="4"  stdDeviation="6"  flood-color="#000" flood-opacity="0.18"/>
+            </filter>
+            <!-- Warm LED glow filters -->
+            <filter id="pHourGlow" x="-200%" y="-200%" width="500%" height="500%">
+              <feGaussianBlur stdDeviation="${P.hourGlowStdDev}" result="b1"/>
+              <feMerge>
+                <feMergeNode in="b1"/>
+                <feMergeNode in="SourceGraphic"/>
+              </feMerge>
+            </filter>
+            <filter id="pMinuteGlow" x="-200%" y="-200%" width="500%" height="500%">
+              <feGaussianBlur stdDeviation="${P.minuteGlowStdDev}" result="b1"/>
+              <feMerge>
+                <feMergeNode in="b1"/>
+                <feMergeNode in="SourceGraphic"/>
+              </feMerge>
+            </filter>
+            <filter id="pSecondGlow" x="-200%" y="-200%" width="500%" height="500%">
+              <feGaussianBlur stdDeviation="${P.secondGlowStdDev}" result="b1"/>
+              <feMerge>
+                <feMergeNode in="b1"/>
+                <feMergeNode in="SourceGraphic"/>
+              </feMerge>
+            </filter>
+            <!-- Dial inner shadow -->
+            <radialGradient id="pDialInnerShadow" cx="50%" cy="50%" r="50%">
+              <stop offset="88%" stop-color="rgba(0,0,0,0)"/>
+              <stop offset="100%" stop-color="rgba(0,0,0,0.18)"/>
+            </radialGradient>
+          </defs>
+
+          <g filter="url(#pCaseShadow)">
+            <!-- Squircle case -->
+            <rect x="0" y="10" width="${P.caseW}" height="${P.caseH}" rx="${P.caseR}" ry="${P.caseR}" fill="url(#pCaseGrad)" stroke="rgba(0,0,0,0.12)" stroke-width="0.8"/>
+            <!-- Top highlight sheen -->
+            <rect x="6" y="16" width="${P.caseW - 12}" height="${P.caseH - 12}" rx="${P.caseR - 4}" ry="${P.caseR - 4}" fill="url(#pCaseHighlight)" opacity="0.55"/>
+
+            <!-- Inner dial face -->
+            <circle cx="${cx}" cy="${cy}" r="${P.dialR}" fill="url(#pDialGrad)" stroke="${P.dialRim}" stroke-width="1.2"/>
+            <circle cx="${cx}" cy="${cy}" r="${P.dialR}" fill="url(#pDialInnerShadow)"/>
+
+            <!-- Ticks (includes lit minutes + lit second) -->
+            ${ticks}
+
+            <!-- Numbers (current hour illuminated) -->
+            ${nums}
+
+            <!-- Day/night icon -->
+            ${dayNightIcon}
+          </g>
+        </svg>
       `;
     }
 
@@ -5165,6 +5400,8 @@
         renderPixelArtClock(h24, now.getMinutes(), secs, now.getMilliseconds());
       } else if (clockStyleSelect.value === 'timer') {
         renderTimerClock();
+      } else if (clockStyleSelect.value === 'premium') {
+        renderPremiumClock(h24, now.getMinutes(), secs, now.getMilliseconds());
       } else if (clockStyleSelect.value === 'flip') {
         renderFlipClock(hoursText, mins, ampmText);
       } else if (clockStyleSelect.value === 'segment') {
@@ -5174,7 +5411,7 @@
       }
 
       const colonNode = document.getElementById('colon');
-      if (colonNode && !['segment','analog','rolex','dotmatrix','math','cuckoo','pixelart','timer'].includes(clockStyleSelect.value))
+      if (colonNode && !['segment','analog','rolex','dotmatrix','math','cuckoo','pixelart','timer','premium'].includes(clockStyleSelect.value))
         colonNode.classList.toggle('off', secs % 2 === 1);
 
       const dateFmt = new Intl.DateTimeFormat(undefined, {
@@ -5709,6 +5946,17 @@
     renderTodoList();
     updateClock();
     setInterval(updateClock, 250);
+
+    // Smooth rAF loop for Premium Minimal — drives pendulum-eased second motion at 60fps
+    let premiumRafId = null;
+    function premiumTick() {
+      if (clockStyleSelect.value === 'premium') {
+        const n = new Date();
+        renderPremiumClock(n.getHours(), n.getMinutes(), n.getSeconds(), n.getMilliseconds());
+      }
+      premiumRafId = requestAnimationFrame(premiumTick);
+    }
+    premiumRafId = requestAnimationFrame(premiumTick);
 
     if (savedSettings.ytUrl) {
       ytState.url = savedSettings.ytUrl;

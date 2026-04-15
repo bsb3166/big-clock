@@ -7,7 +7,7 @@ if exist "%VBS%" (
     del "%VBS%"
     echo [OK] Big Clock server removed from startup.
 ) else (
-    echo [INFO] Not installed — nothing to remove.
+    echo [INFO] Not installed - nothing to remove.
 )
 
 :: Kill any running instance
