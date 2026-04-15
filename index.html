@@ -1973,8 +1973,8 @@
           <option value="math">Math Clock</option>
           <option value="cuckoo">Cuckoo Clock</option>
           <option value="pixelart">Pixel Art Scene</option>
-          <option value="timer">Timer</option>
           <option value="premium">Premium Minimal</option>
+          <option value="timer">Timer</option>
         </select>
         <div class="custom-dropdown" id="clockStyleDropdown">
           <button class="dropdown-trigger" id="clockStyleTrigger" type="button">Default</button>
@@ -1993,8 +1993,9 @@
             <div class="dropdown-item" data-value="math">Math Clock</div>
             <div class="dropdown-item" data-value="cuckoo">Cuckoo Clock</div>
             <div class="dropdown-item" data-value="pixelart">Pixel Art Scene</div>
-            <div class="dropdown-item" data-value="timer">Timer</div>
             <div class="dropdown-item" data-value="premium">Premium Minimal</div>
+            <div class="dropdown-divider"></div>
+            <div class="dropdown-item" data-value="timer">Timer</div>
           </div>
         </div>
       </div>
@@ -3361,32 +3362,35 @@
       numberR: 160,
       minuteTickR: 202,
 
-      // Tick sizes
-      minuteTickW: 1.4, minuteTickLen: 8,
-      hourTickW: 2.2,   hourTickLen: 14,
-      minuteLitW: 2.4,
-      secondLitW: 3.0,
-      secondLitLen: 13,
+      // Tick sizes — bumped for stronger presence
+      minuteTickW: 2.2, minuteTickLen: 9,
+      hourTickW: 3.4,   hourTickLen: 12,         // hour ticks distinctly thicker, modest length
+      minuteLitW: 3.2,
+      hourLitW: 4.6,                             // lit hour ticks visibly bolder than lit minute ticks
+      secondLitW: 4.8,
+      secondLitLen: 14,
+      litHourPoke: 3,                            // lit hour ticks poke this many px outward past outer ring
+      secondPokeOut: 7,                          // lit second overlay pokes this many px past outer ring
 
-      // Colors — muted warm ochre, not saturated LED
-      caseGradTop: '#f4f4f1',
+      // Colors — darker warm-grey dial so the warm white glow pops with high contrast
+      caseGradTop: '#f6f6f3',
       caseGradMid: '#dcdcd7',
       caseGradBot: '#a8a8a3',
-      dialGradTop: '#fafaf7',
-      dialGradBot: '#e3e3de',
-      dialRim: 'rgba(0,0,0,0.10)',
-      numberColor: '#2a2a2a',
-      tickColor: '#3a3a3a',
-      tickColorDim: 'rgba(58,58,58,0.55)',
-      warmGlow: '#f2b86a',                       // painted ochre — softer, less saturated
-      warmGlowStrong: '#e89a3a',                 // deeper ochre for hour / second peak
-      warmGlowCore: '#fff0d4',
+      dialGradTop: '#dad7cf',
+      dialGradBot: '#a8a59d',
+      dialRim: 'rgba(0,0,0,0.18)',
+      numberColor: '#141413',
+      tickColor: '#1a1a18',
+      tickColorDim: 'rgba(20,20,18,0.55)',
+      warmGlow: '#fff2d0',                       // warm white — Balmuda "painted light" tone
+      warmGlowStrong: '#ffe080',                 // warmer amber peak — distinct from warm white so second pip pops over lit cardinals
+      warmGlowCore: '#ffd870',
 
-      // Glow intensity — tuned for "painted not lit" diffusion
-      hourGlowStdDev: 5.5,
-      minuteGlowStdDev: 3.0,
-      secondGlowStdDev: 2.4,
-      litOpacity: 0.88                           // lit elements not at full opacity — painted feel
+      // Glow intensity — keeps painted softness, but brighter core
+      hourGlowStdDev: 5.0,
+      minuteGlowStdDev: 2.6,
+      secondGlowStdDev: 2.0,
+      litOpacity: 1.0                            // full opacity — let glow filter soften it
     };
 
     // Pendulum easing (Foucault reference): slow at extremes, faster in middle
@@ -3422,26 +3426,35 @@
         const isHourTick = i % 5 === 0;
         const outerR = P.minuteTickR;
         const len = isHourTick ? P.hourTickLen : P.minuteTickLen;
-        const [x1, y1] = pt(outerR, a);
+        const isLitMinute = i <= mins;
+
+        // Lit hour ticks poke outward past the ring so the lit-state is clearly distinct
+        // from the bold unlit hour ticks (color change alone doesn't read as "lit").
+        const tickOuter = (isLitMinute && isHourTick) ? outerR + P.litHourPoke : outerR;
+        const [x1, y1] = pt(tickOuter, a);
         const [x2, y2] = pt(outerR - len, a);
 
-        // Base tick (always drawn)
-        const isLitMinute = i <= mins;
-        let baseStroke, baseW, baseFilter = '', baseOp = '0.82';
         if (isLitMinute) {
-          baseStroke = P.warmGlow;
-          baseW = isHourTick ? P.hourTickW + 0.4 : P.minuteLitW;
-          baseFilter = 'filter="url(#pMinuteGlow)"';
-          baseOp = String(P.litOpacity);
+          // Dark amber under-stroke gives the warm-white core edge definition against
+          // the light dial — without it, #fff2d0 on #dad7cf is ~9% luminance diff and
+          // the cardinals visually disappear when lit.
+          const coreW = isHourTick ? P.hourLitW : P.minuteLitW;
+          const underW = coreW + 2.2;
+          ticks += `<line x1="${x1.toFixed(2)}" y1="${y1.toFixed(2)}" x2="${x2.toFixed(2)}" y2="${y2.toFixed(2)}" stroke="#5a3d16" stroke-width="${underW}" stroke-linecap="round" opacity="0.55"/>`;
+          // Warm-white painted-light core with glow halo
+          const coreFilter = isHourTick ? 'url(#pHourGlow)' : 'url(#pMinuteGlow)';
+          ticks += `<line x1="${x1.toFixed(2)}" y1="${y1.toFixed(2)}" x2="${x2.toFixed(2)}" y2="${y2.toFixed(2)}" stroke="${P.warmGlow}" stroke-width="${coreW}" stroke-linecap="round" opacity="${P.litOpacity}" filter="${coreFilter}"/>`;
         } else {
-          baseStroke = isHourTick ? P.tickColor : P.tickColorDim;
-          baseW = isHourTick ? P.hourTickW : P.minuteTickW;
+          const baseStroke = isHourTick ? P.tickColor : P.tickColorDim;
+          const baseW = isHourTick ? P.hourTickW : P.minuteTickW;
+          ticks += `<line x1="${x1.toFixed(2)}" y1="${y1.toFixed(2)}" x2="${x2.toFixed(2)}" y2="${y2.toFixed(2)}" stroke="${baseStroke}" stroke-width="${baseW}" stroke-linecap="round" opacity="0.82"/>`;
         }
-        ticks += `<line x1="${x1.toFixed(2)}" y1="${y1.toFixed(2)}" x2="${x2.toFixed(2)}" y2="${y2.toFixed(2)}" stroke="${baseStroke}" stroke-width="${baseW}" stroke-linecap="round" opacity="${baseOp}" ${baseFilter}/>`;
 
-        // Overlay second highlight (longer, warmer, pendulum-faded)
+        // Overlay second highlight: pokes further out past the lit hour pip so it's
+        // always visible — even when the cardinal beneath is already lit gold — and
+        // uses a brighter cream tone distinct from the gold lit ticks.
         if (i === currSecIdx || i === nextSecIdx) {
-          const [sx1, sy1] = pt(outerR + 3, a);
+          const [sx1, sy1] = pt(outerR + P.secondPokeOut, a);
           const [sx2, sy2] = pt(outerR - P.secondLitLen, a);
           const op = (i === currSecIdx ? currSecOpacity : nextSecOpacity) * P.litOpacity;
           ticks += `<line x1="${sx1.toFixed(2)}" y1="${sy1.toFixed(2)}" x2="${sx2.toFixed(2)}" y2="${sy2.toFixed(2)}" stroke="${P.warmGlowStrong}" stroke-width="${P.secondLitW}" stroke-linecap="round" opacity="${op.toFixed(3)}" filter="url(#pSecondGlow)"/>`;
@@ -3473,8 +3486,8 @@
                return `<line x1="${x1.toFixed(2)}" y1="${y1.toFixed(2)}" x2="${x2.toFixed(2)}" y2="${y2.toFixed(2)}" stroke="#e0a050" stroke-width="1.5" stroke-linecap="round"/>`;
              }).join('')}
            </g>`
-        : `<g opacity="0.6" transform="translate(${cx},${iconY})">
-             <path d="M 5,-9 A 11,11 0 1,0 5,9 A 8,8 0 1,1 5,-9 Z" fill="#6a6a66"/>
+        : `<g transform="translate(${cx},${iconY})" filter="url(#pMoonGlow)">
+             <path d="M 5,-9 A 11,11 0 1,0 5,9 A 8,8 0 1,1 5,-9 Z" fill="#9fc6ff"/>
            </g>`;
 
       timeEl.classList.add('premium-style');
@@ -3504,25 +3517,44 @@
               <feDropShadow dx="0" dy="16" stdDeviation="20" flood-color="#000" flood-opacity="0.28"/>
               <feDropShadow dx="0" dy="4"  stdDeviation="6"  flood-color="#000" flood-opacity="0.18"/>
             </filter>
-            <!-- Warm LED glow filters -->
-            <filter id="pHourGlow" x="-200%" y="-200%" width="500%" height="500%">
+            <!-- Warm LED glow filters.
+                 filterUnits="userSpaceOnUse" is CRITICAL: the default
+                 "objectBoundingBox" scales the filter region by the source
+                 element's bbox, which is width=0 for perfectly vertical lines
+                 (cardinals 12/6) and height=0 for perfectly horizontal lines
+                 (cardinals 3/9). A zero-sized filter region produces no output,
+                 making the filtered cardinals invisible. Fixed-space coords
+                 guarantee the filter always has a real region. -->
+            <filter id="pHourGlow" filterUnits="userSpaceOnUse" x="-40" y="-40" width="600" height="620">
               <feGaussianBlur stdDeviation="${P.hourGlowStdDev}" result="b1"/>
               <feMerge>
                 <feMergeNode in="b1"/>
                 <feMergeNode in="SourceGraphic"/>
               </feMerge>
             </filter>
-            <filter id="pMinuteGlow" x="-200%" y="-200%" width="500%" height="500%">
+            <filter id="pMinuteGlow" filterUnits="userSpaceOnUse" x="-40" y="-40" width="600" height="620">
               <feGaussianBlur stdDeviation="${P.minuteGlowStdDev}" result="b1"/>
               <feMerge>
                 <feMergeNode in="b1"/>
                 <feMergeNode in="SourceGraphic"/>
               </feMerge>
             </filter>
-            <filter id="pSecondGlow" x="-200%" y="-200%" width="500%" height="500%">
+            <filter id="pSecondGlow" filterUnits="userSpaceOnUse" x="-40" y="-40" width="600" height="620">
               <feGaussianBlur stdDeviation="${P.secondGlowStdDev}" result="b1"/>
               <feMerge>
                 <feMergeNode in="b1"/>
+                <feMergeNode in="SourceGraphic"/>
+              </feMerge>
+            </filter>
+            <!-- Cool blue moon glow (only shown after sunset) -->
+            <filter id="pMoonGlow" x="-300%" y="-300%" width="700%" height="700%">
+              <feGaussianBlur stdDeviation="3.5" result="b1"/>
+              <feFlood flood-color="#5aa0ff" flood-opacity="0.9" result="blue"/>
+              <feComposite in="blue" in2="b1" operator="in" result="bluedHalo"/>
+              <feGaussianBlur in="bluedHalo" stdDeviation="2" result="b2"/>
+              <feMerge>
+                <feMergeNode in="b2"/>
+                <feMergeNode in="bluedHalo"/>
                 <feMergeNode in="SourceGraphic"/>
               </feMerge>
             </filter>
