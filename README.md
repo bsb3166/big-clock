@@ -58,6 +58,30 @@ A fullscreen web clock with large display styles, floating timers, world clocks,
 ### Alarm Controls
 - `Esc` — Stop active alarm (or click the **Stop** button)
 
+### URL Hash Shortcuts
+Jump directly to any clock style by appending `#number` or `#name` to the URL:
+
+| Hash | Style |
+|------|-------|
+| `#0` | Default |
+| `#1` | LED Neon Green |
+| `#2` | LED Neon Blue |
+| `#3` | LED Neon Orange |
+| `#4` | Mixed Neon |
+| `#5` | 7-Segment |
+| `#6` | Flip Clock |
+| `#7` | Retro Tech |
+| `#8` | Analog Classic |
+| `#9` | Rolex Day-Date |
+| `#10` | Dot Matrix |
+| `#11` | Math Clock |
+| `#12` | Cuckoo Clock |
+| `#13` | Pixel Art Scene |
+| `#14` | Premium Minimal |
+| `#99` | Timer |
+
+Style names also work: `#premium`, `#rolex`, `#timer`, etc. Useful for sharing a direct link to a specific clock style. Switching styles via the menu does not change the URL.
+
 ## Running Locally
 
 Because Big Clock is built purely natively, just open `index.html` in any browser!

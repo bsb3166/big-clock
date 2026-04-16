@@ -3006,22 +3006,26 @@
       } catch {}
     }
 
-    // URL hash shortcuts: #0 = default, #1 = led-green, … #15 = timer
-    // Order matches the dropdown menu. Both name and number work: #premium or #15.
-    const STYLE_ORDER = [
-      'default', 'led-green', 'led-blue', 'led-orange', 'led-mixed',
-      'segment', 'flip', 'retro', 'analog', 'rolex',
-      'dotmatrix', 'math', 'cuckoo', 'pixelart', 'premium', 'timer'
-    ];
+    // URL hash shortcuts: #0 = default, #1 = led-green, … #99 = timer
+    // Explicit map (not sequential) so future styles can slot in without shifting numbers.
+    // Both number and name work: #14 or #premium.
+    const STYLE_BY_NUM = {
+      0: 'default',    1: 'led-green',  2: 'led-blue',   3: 'led-orange',
+      4: 'led-mixed',  5: 'segment',    6: 'flip',       7: 'retro',
+      8: 'analog',     9: 'rolex',      10: 'dotmatrix', 11: 'math',
+      12: 'cuckoo',    13: 'pixelart',  14: 'premium',
+      99: 'timer'
+    };
+    const ALL_STYLE_NAMES = Object.values(STYLE_BY_NUM);
     function styleFromHash(hash) {
       const h = (hash || '').replace('#', '').trim();
       if (!h) return null;
       // Try number first
       const n = parseInt(h, 10);
-      if (!isNaN(n) && n >= 0 && n < STYLE_ORDER.length) return STYLE_ORDER[n];
+      if (!isNaN(n) && STYLE_BY_NUM[n]) return STYLE_BY_NUM[n];
       // Try name match (case-insensitive)
       const lower = h.toLowerCase();
-      return STYLE_ORDER.find(s => s === lower) || null;
+      return ALL_STYLE_NAMES.find(s => s === lower) || null;
     }
 
     function applyClockStyle(styleKey) {
@@ -3138,12 +3142,6 @@
       }
       saveSettings();
       applyTimeScale();
-      // Update URL hash to reflect current style (silent — no hashchange event loop)
-      const idx = STYLE_ORDER.indexOf(resolvedStyle);
-      const newHash = idx >= 0 ? `#${idx}` : '';
-      if (window.location.hash !== newHash) {
-        history.replaceState(null, '', newHash || window.location.pathname);
-      }
     }
 
     function applyTheme(themeKey) {
