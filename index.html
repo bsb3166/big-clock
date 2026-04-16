@@ -3529,12 +3529,16 @@
       }
     }
 
-    // Click delegation for relax buttons.
-    // The Premium SVG regenerates every rAF frame, so we can't attach per-node listeners —
-    // use a single delegated handler on timeEl. closest() walks up to the <g data-relax-btn>.
-    timeEl.addEventListener('click', (e) => {
+    // Pointer delegation for relax buttons.
+    // MUST use pointerdown (not click): the Premium SVG regenerates innerHTML every
+    // rAF frame (~16ms). A "click" requires mousedown + mouseup on the same DOM node,
+    // but innerHTML replacement destroys the mousedown target before mouseup fires,
+    // so the browser never synthesizes the click event. pointerdown fires immediately
+    // on press — no waiting for a matching up event on a now-dead element.
+    timeEl.addEventListener('pointerdown', (e) => {
       const btn = e.target.closest('[data-relax-btn]');
       if (!btn) return;
+      e.preventDefault();          // prevent text-selection drag on the SVG
       const key = btn.getAttribute('data-relax-btn');
       toggleRelaxSound(key);
     });
@@ -3611,48 +3615,35 @@
       const currSecOpacity = 1 - eased;
       const nextSecOpacity = eased;
 
-      // ---- Relax buttons (3 corners, polished-metal style, press-in visual) ----
-      const relaxBtn = (x, y, key, iconSvg) => {
+      // ---- Relax buttons (3 corners, iPod Shuffle-style flush aluminum) ----
+      // Design reference: iPod Shuffle center button — same polished aluminum as case,
+      // shallow circular inset with hairline groove, icon etched into the surface.
+      // Rest: flush with case, subtle inset groove. Pressed: slightly deeper, top
+      // shadow appears, bottom catch-light brightens. Same material throughout.
+      const relaxBtn = (x, y, key, emoji) => {
         const active = relaxState[key];
         const faceFill = active ? 'url(#pBtnFaceActive)' : 'url(#pBtnFace)';
-        const iconFill = active ? '#fff4d0' : '#2e2e2a';
-        const iconFilter = active ? ' filter="url(#pBtnGlow)"' : '';
-        // Press-in: face sinks 2.5px downward, shrinks from r=19 to r=17.5, showing
-        // more of the dark well behind it — a clear "pushed into the housing" look.
-        // Rest state: face sits high (cy=-1) with a specular crescent on top and
-        // an elevation shadow underneath.
-        const faceDy = active ? 2.5 : -1;
-        const faceR = active ? 17.5 : 19;
-        // Well rim light flips: rest = bright top (light source above), pressed = bright bottom (well edge now visible)
-        const rimTopOp = active ? 0.12 : 0.6;
-        const rimBotOp = active ? 0.55 : 0.12;
+        const grooveOp = active ? 0.35 : 0.2;
+        const emojiOp = active ? 1 : 0.55;
         return `
           <g data-relax-btn="${key}" transform="translate(${x},${y})" style="cursor:pointer;">
-            <circle r="24" fill="url(#pBtnWell)"/>
-            <!-- Well rim highlights -->
-            <path d="M -20,-10 A 24,24 0 0,1 20,-10" fill="none" stroke="rgba(255,255,255,${rimTopOp})" stroke-width="1.2" stroke-linecap="round"/>
-            <path d="M -20,10 A 24,24 0 0,0 20,10" fill="none" stroke="rgba(0,0,0,${rimBotOp})" stroke-width="1.2" stroke-linecap="round"/>
-            ${!active ? `<!-- Elevation shadow (rest state — face floats above well) -->
-            <ellipse cx="0" cy="3" rx="16" ry="6" fill="rgba(0,0,0,0.25)" filter="url(#pBtnGlow)"/>` : ''}
-            <!-- Button face -->
-            <circle cx="0" cy="${faceDy}" r="${faceR}" fill="${faceFill}" stroke="rgba(0,0,0,${active ? 0.35 : 0.2})" stroke-width="0.7"/>
-            ${!active ? `<!-- Specular crescent on raised face (top highlight) -->
-            <path d="M -14,${faceDy - 14} A 16,16 0 0,1 14,${faceDy - 14}" fill="none" stroke="rgba(255,255,255,0.7)" stroke-width="1.5" stroke-linecap="round"/>` : ''}
-            ${active ? `<!-- Inset top shadow (well edge casts shadow onto sunken face) -->
-            <path d="M -14,${faceDy - 13} A 15,15 0 0,1 14,${faceDy - 13}" fill="none" stroke="rgba(0,0,0,0.45)" stroke-width="2" stroke-linecap="round"/>
-            <!-- Active glow ring -->
-            <circle cx="0" cy="${faceDy}" r="${faceR}" fill="none" stroke="#ffb84a" stroke-width="1.2" opacity="0.85" filter="url(#pBtnGlow)"/>` : ''}
-            <!-- Icon -->
-            <g transform="translate(0,${faceDy})" fill="${iconFill}"${iconFilter}>${iconSvg}</g>
+            <!-- Hit area (invisible, generous) -->
+            <circle r="22" fill="transparent"/>
+            <!-- Groove channel — shallow circular depression in the aluminum -->
+            <circle r="20" fill="none" stroke="rgba(0,0,0,${grooveOp})" stroke-width="1.2"/>
+            <circle r="21" fill="none" stroke="rgba(255,255,255,0.12)" stroke-width="0.6"/>
+            <!-- Button face — same aluminum gradient as the case -->
+            <circle r="19" fill="${faceFill}"/>
+            ${active ? `<!-- Warm glow halo when active -->
+            <circle r="19" fill="none" stroke="rgba(210,170,90,0.3)" stroke-width="2" filter="url(#pBtnGlow)"/>` : ''}
+            <!-- Emoji icon -->
+            <text x="0" y="1" text-anchor="middle" dominant-baseline="central" font-size="18" opacity="${emojiOp}">${emoji}</text>
           </g>`;
       };
-      const iconRain = `<path d="M 0,-10 C -6,-2 -6,5 0,10 C 6,5 6,-2 0,-10 Z"/>`;
-      const iconCricket = `<ellipse cx="-1" cy="4.5" rx="4.5" ry="3" transform="rotate(-18 -1 4.5)"/><path d="M 3,4 L 3,-9 L 8,-7.5 L 8,-4 L 3,-6 Z"/>`;
-      const iconThunder = `<path d="M 3,-10 L -5,2 L 0,2 L -3,10 L 6,-2 L 1,-2 Z"/>`;
       const relaxButtons =
-        relaxBtn(78, 82,  'rain',     iconRain) +
-        relaxBtn(442, 82, 'crickets', iconCricket) +
-        relaxBtn(78, 458, 'thunder',  iconThunder);
+        relaxBtn(78, 82,  'rain',     '🌧️') +
+        relaxBtn(442, 82, 'crickets', '🦗') +
+        relaxBtn(78, 458, 'thunder',  '⛈️');
 
       // ---- 60 minute ticks: progressive minute fill + pendulum-eased second crossfade ----
       let ticks = '';
@@ -3829,25 +3820,28 @@
               <stop offset="88%" stop-color="rgba(0,0,0,0)"/>
               <stop offset="100%" stop-color="rgba(0,0,0,0.18)"/>
             </radialGradient>
-            <!-- Relax-button gradients — matching polished aluminum language -->
-            <radialGradient id="pBtnWell" cx="50%" cy="38%" r="75%">
-              <stop offset="0%"   stop-color="#7c7c76"/>
-              <stop offset="100%" stop-color="#3e3e3a"/>
-            </radialGradient>
-            <radialGradient id="pBtnFace" cx="50%" cy="28%" r="75%">
-              <stop offset="0%"   stop-color="#fcfcfa"/>
-              <stop offset="45%"  stop-color="#d4d4cf"/>
-              <stop offset="82%"  stop-color="#9a9a94"/>
-              <stop offset="100%" stop-color="#767670"/>
-            </radialGradient>
-            <radialGradient id="pBtnFaceActive" cx="50%" cy="70%" r="75%">
-              <stop offset="0%"   stop-color="#f5d888"/>
-              <stop offset="45%"  stop-color="#c09448"/>
-              <stop offset="85%"  stop-color="#6a4e22"/>
-              <stop offset="100%" stop-color="#4a3814"/>
-            </radialGradient>
+            <!-- Relax-button gradients — iPod Shuffle-style flush aluminum.
+                 Same material as the case: no contrasting dark well.
+                 Just a shallow circular inset in the same metal. -->
+            <!-- Rest face: same aluminum gradient as case, highlight at top -->
+            <linearGradient id="pBtnFace" x1="0%" y1="0%" x2="0%" y2="100%">
+              <stop offset="0%"   stop-color="#f0f0ed"/>
+              <stop offset="18%"  stop-color="#ddddd8"/>
+              <stop offset="50%"  stop-color="#c8c8c3"/>
+              <stop offset="82%"  stop-color="#b0b0ab"/>
+              <stop offset="100%" stop-color="#9a9a95"/>
+            </linearGradient>
+            <!-- Active face: same metal but warmer tint (warm LED glow bleeding into aluminum) -->
+            <linearGradient id="pBtnFaceActive" x1="0%" y1="0%" x2="0%" y2="100%">
+              <stop offset="0%"   stop-color="#f0e8d4"/>
+              <stop offset="18%"  stop-color="#ddd0b8"/>
+              <stop offset="50%"  stop-color="#c8b89e"/>
+              <stop offset="82%"  stop-color="#b0a088"/>
+              <stop offset="100%" stop-color="#9a8e78"/>
+            </linearGradient>
+            <!-- Subtle warm glow for active icon -->
             <filter id="pBtnGlow" filterUnits="userSpaceOnUse" x="-60" y="-60" width="640" height="660">
-              <feGaussianBlur stdDeviation="3.5" result="b"/>
+              <feGaussianBlur stdDeviation="2.5" result="b"/>
               <feMerge>
                 <feMergeNode in="b"/>
                 <feMergeNode in="SourceGraphic"/>
