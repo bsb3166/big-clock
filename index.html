@@ -566,8 +566,8 @@
       animation: premiumReveal 900ms cubic-bezier(.2,.7,.2,1) both;
     }
     @keyframes premiumReveal {
-      0%   { opacity: 0; transform: translateY(10px) scale(0.985); }
-      100% { opacity: 1; transform: translateY(0)    scale(1); }
+      0%   { opacity: 0; }
+      100% { opacity: 1; }
     }
     .premium-svg { width: 100%; height: 100%; display: block; }
     .premium-tick { transition: fill 600ms ease, opacity 600ms ease; }
@@ -2292,6 +2292,14 @@
     const appRoot = document.getElementById('appRoot');
     const timeEl = document.getElementById('time');
     const timeStageEl = document.getElementById('timeStage');
+    // Master list of every clock-style CSS class — used by every render function
+    // to cleanly strip ALL previous styles before applying its own.
+    const ALL_CLOCK_STYLES = [
+      'flip-style', 'led-style', 'led-green-style', 'led-blue-style',
+      'led-orange-style', 'led-mixed-style', 'segment-style', 'analog-style',
+      'rolex-style', 'dotmatrix-style', 'cuckoo-style', 'pixelart-style',
+      'premium-style', 'math-style'
+    ];
     const dateEl = document.getElementById('date');
     const lunarDateEl = document.getElementById('lunarDate');
     const tzEl = document.getElementById('tz');
@@ -3185,8 +3193,8 @@
     function renderSegmentClock(hoursText, minutesText, ampmText, colonOn) {
       const hourChars = hoursText.padStart(2, ' ').split('');
       const minuteChars = minutesText.padStart(2, '0').split('');
+      timeEl.classList.remove(...ALL_CLOCK_STYLES);
       timeEl.classList.add('segment-style');
-      timeEl.classList.remove('flip-style', 'led-style', 'led-green-style', 'led-blue-style', 'led-orange-style', 'analog-style', 'rolex-style', 'dotmatrix-style');
       timeEl.innerHTML = `
         ${renderSegmentDigit(hourChars[0])}
         ${renderSegmentDigit(hourChars[1])}
@@ -3230,7 +3238,7 @@
     }
 
     function renderStandardClock(hoursText, minutesText, ampmText) {
-      timeEl.classList.remove('flip-style', 'led-style', 'led-green-style', 'led-blue-style', 'led-orange-style', 'led-mixed-style', 'segment-style', 'analog-style', 'rolex-style', 'dotmatrix-style');
+      timeEl.classList.remove(...ALL_CLOCK_STYLES);
       if (clockStyleSelect.value === 'led-green') {
         timeEl.classList.add('led-style', 'led-green-style');
       }
@@ -3262,7 +3270,7 @@
     }
 
     function renderTimerClock() {
-      timeEl.classList.remove('flip-style', 'led-style', 'led-green-style', 'led-blue-style', 'led-orange-style', 'led-mixed-style', 'segment-style', 'analog-style', 'rolex-style', 'dotmatrix-style');
+      timeEl.classList.remove(...ALL_CLOCK_STYLES);
 
       let remaining = 0;
       let statusText = 'Idle';
@@ -3348,6 +3356,190 @@
     }
 
     // ============================================================
+    // Relax Time — ambient sound generators for the Premium Minimal
+    // corner buttons. All three sounds are synthesized via WebAudio so
+    // there are no external dependencies. They can play simultaneously
+    // (multi-select). Each sound returns a stop() function so the
+    // toggle handler can tear it down cleanly.
+    // ============================================================
+    const relaxState = { rain: false, crickets: false, thunder: false };
+    let relaxAudioCtx = null;
+    const relaxSounds = { rain: null, crickets: null, thunder: null };
+
+    function getRelaxAudioCtx() {
+      if (!relaxAudioCtx) {
+        relaxAudioCtx = new (window.AudioContext || window.webkitAudioContext)();
+      }
+      if (relaxAudioCtx.state === 'suspended') relaxAudioCtx.resume();
+      return relaxAudioCtx;
+    }
+
+    // --- Rain: layered filtered noise with slow LFO for "shhh" texture ---
+    function startRainSound() {
+      const ctx = getRelaxAudioCtx();
+      const bufferSize = 4 * ctx.sampleRate;
+      const buffer = ctx.createBuffer(1, bufferSize, ctx.sampleRate);
+      const data = buffer.getChannelData(0);
+      // Pink-ish noise (Voss-McCartney approximation)
+      let b0 = 0, b1 = 0, b2 = 0, b3 = 0, b4 = 0, b5 = 0, b6 = 0;
+      for (let i = 0; i < bufferSize; i++) {
+        const white = Math.random() * 2 - 1;
+        b0 = 0.99886 * b0 + white * 0.0555179;
+        b1 = 0.99332 * b1 + white * 0.0750759;
+        b2 = 0.96900 * b2 + white * 0.1538520;
+        b3 = 0.86650 * b3 + white * 0.3104856;
+        b4 = 0.55000 * b4 + white * 0.5329522;
+        b5 = -0.7616 * b5 - white * 0.0168980;
+        data[i] = (b0 + b1 + b2 + b3 + b4 + b5 + b6 + white * 0.5362) * 0.11;
+        b6 = white * 0.115926;
+      }
+      const src = ctx.createBufferSource();
+      src.buffer = buffer;
+      src.loop = true;
+      const hpf = ctx.createBiquadFilter(); hpf.type = 'highpass';
+      hpf.frequency.value = 280;
+      const lpf = ctx.createBiquadFilter(); lpf.type = 'lowpass';
+      lpf.frequency.value = 2200; lpf.Q.value = 0.5;
+      // Slow LFO on gain for organic rolling intensity
+      const gain = ctx.createGain(); gain.gain.value = 0.0;
+      const lfo = ctx.createOscillator(); lfo.frequency.value = 0.12;
+      const lfoGain = ctx.createGain(); lfoGain.gain.value = 0.06;
+      lfo.connect(lfoGain).connect(gain.gain);
+      src.connect(hpf).connect(lpf).connect(gain).connect(ctx.destination);
+      src.start(); lfo.start();
+      // Fade in
+      gain.gain.setValueAtTime(0.0, ctx.currentTime);
+      gain.gain.linearRampToValueAtTime(0.32, ctx.currentTime + 0.8);
+      return () => {
+        const t = ctx.currentTime;
+        gain.gain.cancelScheduledValues(t);
+        gain.gain.setValueAtTime(gain.gain.value, t);
+        gain.gain.linearRampToValueAtTime(0, t + 0.4);
+        setTimeout(() => { try { src.stop(); lfo.stop(); } catch(e){} }, 450);
+      };
+    }
+
+    // --- Crickets: rhythmic high-frequency chirps on a repeating schedule ---
+    function startCricketSound() {
+      const ctx = getRelaxAudioCtx();
+      const master = ctx.createGain(); master.gain.value = 0.0;
+      master.connect(ctx.destination);
+      master.gain.setValueAtTime(0.0, ctx.currentTime);
+      master.gain.linearRampToValueAtTime(0.22, ctx.currentTime + 0.6);
+      // A "cricket" is a fast burst of chirps at ~4.5kHz with strong harmonics.
+      // We'll schedule chirps on a repeating timer and let them overlap a bit.
+      let stopped = false;
+      function chirpAt(time, freq, dur) {
+        const osc = ctx.createOscillator();
+        osc.type = 'sine';
+        osc.frequency.value = freq;
+        // Tremolo gives the "zzt-zzt-zzt" buzz within a single chirp
+        const trem = ctx.createOscillator(); trem.frequency.value = 65;
+        const tremGain = ctx.createGain(); tremGain.gain.value = 0.45;
+        trem.connect(tremGain);
+        const g = ctx.createGain(); g.gain.value = 0;
+        tremGain.connect(g.gain);
+        // Amplitude envelope: fast attack/decay
+        g.gain.setValueAtTime(0, time);
+        g.gain.linearRampToValueAtTime(0.5, time + 0.008);
+        g.gain.linearRampToValueAtTime(0, time + dur);
+        // Filter for "insect" resonance
+        const bp = ctx.createBiquadFilter();
+        bp.type = 'bandpass'; bp.frequency.value = freq; bp.Q.value = 8;
+        osc.connect(bp).connect(g).connect(master);
+        osc.start(time); trem.start(time);
+        osc.stop(time + dur + 0.02);
+        trem.stop(time + dur + 0.02);
+      }
+      function schedule() {
+        if (stopped) return;
+        const now = ctx.currentTime;
+        // Several crickets chirping at slightly different rates
+        for (let c = 0; c < 3; c++) {
+          const baseFreq = 4200 + c * 350 + Math.random() * 180;
+          const offset = c * 0.12 + Math.random() * 0.05;
+          for (let k = 0; k < 3; k++) {
+            chirpAt(now + offset + k * 0.11, baseFreq, 0.06);
+          }
+        }
+        setTimeout(schedule, 900 + Math.random() * 250);
+      }
+      schedule();
+      return () => {
+        stopped = true;
+        const t = ctx.currentTime;
+        master.gain.cancelScheduledValues(t);
+        master.gain.setValueAtTime(master.gain.value, t);
+        master.gain.linearRampToValueAtTime(0, t + 0.4);
+      };
+    }
+
+    // --- Thunder: low-pass brown noise rumble with occasional swells ---
+    function startThunderSound() {
+      const ctx = getRelaxAudioCtx();
+      const bufferSize = 4 * ctx.sampleRate;
+      const buffer = ctx.createBuffer(1, bufferSize, ctx.sampleRate);
+      const data = buffer.getChannelData(0);
+      // Brown noise (integrated white)
+      let lastOut = 0;
+      for (let i = 0; i < bufferSize; i++) {
+        const white = Math.random() * 2 - 1;
+        lastOut = (lastOut + 0.02 * white) / 1.02;
+        data[i] = lastOut * 3.5;
+      }
+      const src = ctx.createBufferSource();
+      src.buffer = buffer;
+      src.loop = true;
+      const lpf = ctx.createBiquadFilter(); lpf.type = 'lowpass';
+      lpf.frequency.value = 180; lpf.Q.value = 0.8;
+      const gain = ctx.createGain(); gain.gain.value = 0.0;
+      src.connect(lpf).connect(gain).connect(ctx.destination);
+      src.start();
+      // Base rumble fade-in
+      gain.gain.setValueAtTime(0.0, ctx.currentTime);
+      gain.gain.linearRampToValueAtTime(0.22, ctx.currentTime + 1.2);
+      // Schedule thunder claps every 6-14 sec
+      let stopped = false;
+      function clap() {
+        if (stopped) return;
+        const t = ctx.currentTime;
+        gain.gain.linearRampToValueAtTime(0.55, t + 0.4);
+        gain.gain.linearRampToValueAtTime(0.22, t + 2.8);
+        setTimeout(clap, 6000 + Math.random() * 8000);
+      }
+      setTimeout(clap, 3000 + Math.random() * 3000);
+      return () => {
+        stopped = true;
+        const t = ctx.currentTime;
+        gain.gain.cancelScheduledValues(t);
+        gain.gain.setValueAtTime(gain.gain.value, t);
+        gain.gain.linearRampToValueAtTime(0, t + 0.5);
+        setTimeout(() => { try { src.stop(); } catch(e){} }, 550);
+      };
+    }
+
+    function toggleRelaxSound(key) {
+      relaxState[key] = !relaxState[key];
+      if (relaxState[key]) {
+        const starters = { rain: startRainSound, crickets: startCricketSound, thunder: startThunderSound };
+        relaxSounds[key] = starters[key]();
+      } else if (relaxSounds[key]) {
+        relaxSounds[key](); // stop function
+        relaxSounds[key] = null;
+      }
+    }
+
+    // Click delegation for relax buttons.
+    // The Premium SVG regenerates every rAF frame, so we can't attach per-node listeners —
+    // use a single delegated handler on timeEl. closest() walks up to the <g data-relax-btn>.
+    timeEl.addEventListener('click', (e) => {
+      const btn = e.target.closest('[data-relax-btn]');
+      if (!btn) return;
+      const key = btn.getAttribute('data-relax-btn');
+      toggleRelaxSound(key);
+    });
+
+    // ============================================================
     // Premium Minimal Clock — no hands, squircle case
     // Inspired by Balmuda "Light Hour": illumination-only, painted-glow
     // quality, and pendulum-like second motion (Foucault reference).
@@ -3418,6 +3610,49 @@
       // with eased progress creating a pendulum-like handoff.
       const currSecOpacity = 1 - eased;
       const nextSecOpacity = eased;
+
+      // ---- Relax buttons (3 corners, polished-metal style, press-in visual) ----
+      const relaxBtn = (x, y, key, iconSvg) => {
+        const active = relaxState[key];
+        const faceFill = active ? 'url(#pBtnFaceActive)' : 'url(#pBtnFace)';
+        const iconFill = active ? '#fff4d0' : '#2e2e2a';
+        const iconFilter = active ? ' filter="url(#pBtnGlow)"' : '';
+        // Press-in: face sinks 2.5px downward, shrinks from r=19 to r=17.5, showing
+        // more of the dark well behind it — a clear "pushed into the housing" look.
+        // Rest state: face sits high (cy=-1) with a specular crescent on top and
+        // an elevation shadow underneath.
+        const faceDy = active ? 2.5 : -1;
+        const faceR = active ? 17.5 : 19;
+        // Well rim light flips: rest = bright top (light source above), pressed = bright bottom (well edge now visible)
+        const rimTopOp = active ? 0.12 : 0.6;
+        const rimBotOp = active ? 0.55 : 0.12;
+        return `
+          <g data-relax-btn="${key}" transform="translate(${x},${y})" style="cursor:pointer;">
+            <circle r="24" fill="url(#pBtnWell)"/>
+            <!-- Well rim highlights -->
+            <path d="M -20,-10 A 24,24 0 0,1 20,-10" fill="none" stroke="rgba(255,255,255,${rimTopOp})" stroke-width="1.2" stroke-linecap="round"/>
+            <path d="M -20,10 A 24,24 0 0,0 20,10" fill="none" stroke="rgba(0,0,0,${rimBotOp})" stroke-width="1.2" stroke-linecap="round"/>
+            ${!active ? `<!-- Elevation shadow (rest state — face floats above well) -->
+            <ellipse cx="0" cy="3" rx="16" ry="6" fill="rgba(0,0,0,0.25)" filter="url(#pBtnGlow)"/>` : ''}
+            <!-- Button face -->
+            <circle cx="0" cy="${faceDy}" r="${faceR}" fill="${faceFill}" stroke="rgba(0,0,0,${active ? 0.35 : 0.2})" stroke-width="0.7"/>
+            ${!active ? `<!-- Specular crescent on raised face (top highlight) -->
+            <path d="M -14,${faceDy - 14} A 16,16 0 0,1 14,${faceDy - 14}" fill="none" stroke="rgba(255,255,255,0.7)" stroke-width="1.5" stroke-linecap="round"/>` : ''}
+            ${active ? `<!-- Inset top shadow (well edge casts shadow onto sunken face) -->
+            <path d="M -14,${faceDy - 13} A 15,15 0 0,1 14,${faceDy - 13}" fill="none" stroke="rgba(0,0,0,0.45)" stroke-width="2" stroke-linecap="round"/>
+            <!-- Active glow ring -->
+            <circle cx="0" cy="${faceDy}" r="${faceR}" fill="none" stroke="#ffb84a" stroke-width="1.2" opacity="0.85" filter="url(#pBtnGlow)"/>` : ''}
+            <!-- Icon -->
+            <g transform="translate(0,${faceDy})" fill="${iconFill}"${iconFilter}>${iconSvg}</g>
+          </g>`;
+      };
+      const iconRain = `<path d="M 0,-10 C -6,-2 -6,5 0,10 C 6,5 6,-2 0,-10 Z"/>`;
+      const iconCricket = `<ellipse cx="-1" cy="4.5" rx="4.5" ry="3" transform="rotate(-18 -1 4.5)"/><path d="M 3,4 L 3,-9 L 8,-7.5 L 8,-4 L 3,-6 Z"/>`;
+      const iconThunder = `<path d="M 3,-10 L -5,2 L 0,2 L -3,10 L 6,-2 L 1,-2 Z"/>`;
+      const relaxButtons =
+        relaxBtn(78, 82,  'rain',     iconRain) +
+        relaxBtn(442, 82, 'crickets', iconCricket) +
+        relaxBtn(78, 458, 'thunder',  iconThunder);
 
       // ---- 60 minute ticks: progressive minute fill + pendulum-eased second crossfade ----
       let ticks = '';
@@ -3490,8 +3725,8 @@
              <path d="M 5,-9 A 11,11 0 1,0 5,9 A 8,8 0 1,1 5,-9 Z" fill="#9fc6ff"/>
            </g>`;
 
+      timeEl.classList.remove(...ALL_CLOCK_STYLES);
       timeEl.classList.add('premium-style');
-      timeEl.classList.remove('flip-style','led-style','led-green-style','led-blue-style','led-orange-style','led-mixed-style','segment-style','analog-style','rolex-style','dotmatrix-style');
       timeEl.style.setProperty('--premium-warm', P.warmGlow);
 
       timeEl.innerHTML = `
@@ -3594,6 +3829,30 @@
               <stop offset="88%" stop-color="rgba(0,0,0,0)"/>
               <stop offset="100%" stop-color="rgba(0,0,0,0.18)"/>
             </radialGradient>
+            <!-- Relax-button gradients — matching polished aluminum language -->
+            <radialGradient id="pBtnWell" cx="50%" cy="38%" r="75%">
+              <stop offset="0%"   stop-color="#7c7c76"/>
+              <stop offset="100%" stop-color="#3e3e3a"/>
+            </radialGradient>
+            <radialGradient id="pBtnFace" cx="50%" cy="28%" r="75%">
+              <stop offset="0%"   stop-color="#fcfcfa"/>
+              <stop offset="45%"  stop-color="#d4d4cf"/>
+              <stop offset="82%"  stop-color="#9a9a94"/>
+              <stop offset="100%" stop-color="#767670"/>
+            </radialGradient>
+            <radialGradient id="pBtnFaceActive" cx="50%" cy="70%" r="75%">
+              <stop offset="0%"   stop-color="#f5d888"/>
+              <stop offset="45%"  stop-color="#c09448"/>
+              <stop offset="85%"  stop-color="#6a4e22"/>
+              <stop offset="100%" stop-color="#4a3814"/>
+            </radialGradient>
+            <filter id="pBtnGlow" filterUnits="userSpaceOnUse" x="-60" y="-60" width="640" height="660">
+              <feGaussianBlur stdDeviation="3.5" result="b"/>
+              <feMerge>
+                <feMergeNode in="b"/>
+                <feMergeNode in="SourceGraphic"/>
+              </feMerge>
+            </filter>
           </defs>
 
           <g filter="url(#pCaseShadow)">
@@ -3621,6 +3880,9 @@
 
             <!-- Day/night icon -->
             ${dayNightIcon}
+
+            <!-- Relax Time buttons on the bezel (3 corners) -->
+            ${relaxButtons}
           </g>
         </svg>
       `;
@@ -3630,8 +3892,8 @@
       const hourChars = hoursText.padStart(2, ' ').split('');
       const minuteChars = minutesText.padStart(2, '0').split('');
       const hourPair = `${hourChars[0] === ' ' ? '&nbsp;' : hourChars[0]}${hourChars[1]}`;
+      timeEl.classList.remove(...ALL_CLOCK_STYLES);
       timeEl.classList.add('flip-style');
-      timeEl.classList.remove('led-style', 'led-green-style', 'led-blue-style', 'led-orange-style', 'segment-style', 'analog-style', 'rolex-style', 'dotmatrix-style');
       timeEl.innerHTML = `
         <span class="flip-card"><span style="position:absolute;top:0.12em;left:0.16em;font-size:0.18em;letter-spacing:0.08em;opacity:0.72;">${use24Hour ? '' : ampmText}</span>${hourPair}</span>
         <span class="flip-colon colon" id="colon">:</span>
@@ -3684,9 +3946,8 @@
                stroke="${color}" stroke-width="${sw}" stroke-linecap="round"
                filter="url(#aHandShadow)" ${extraAttrs}/>`;
 
+      timeEl.classList.remove(...ALL_CLOCK_STYLES);
       timeEl.classList.add('analog-style');
-      timeEl.classList.remove('flip-style', 'led-style', 'led-green-style', 'led-blue-style',
-        'led-orange-style', 'led-mixed-style', 'segment-style', 'rolex-style', 'dotmatrix-style');
 
       timeEl.innerHTML = `
         <svg class="analog-svg" viewBox="0 0 500 500" xmlns="http://www.w3.org/2000/svg">
@@ -3814,9 +4075,8 @@
                stroke="${color}" stroke-width="${sw}" stroke-linecap="round"
                filter="url(#mHandShadow)"/>`;
 
+      timeEl.classList.remove(...ALL_CLOCK_STYLES);
       timeEl.classList.add('analog-style');
-      timeEl.classList.remove('flip-style', 'led-style', 'led-green-style', 'led-blue-style',
-        'led-orange-style', 'led-mixed-style', 'segment-style', 'rolex-style', 'dotmatrix-style');
 
       timeEl.innerHTML = `
         <svg class="analog-svg" viewBox="0 0 500 500" xmlns="http://www.w3.org/2000/svg">
@@ -4014,9 +4274,8 @@
 
       const btnY = bBottom + 10;
 
+      timeEl.classList.remove(...ALL_CLOCK_STYLES);
       timeEl.classList.add('cuckoo-style');
-      timeEl.classList.remove('analog-style', 'flip-style', 'led-style', 'led-green-style',
-        'led-blue-style', 'led-orange-style', 'led-mixed-style', 'segment-style', 'rolex-style', 'dotmatrix-style');
 
       timeEl.innerHTML = `
         <svg class="analog-svg" viewBox="0 0 500 620" xmlns="http://www.w3.org/2000/svg" overflow="visible">
@@ -4510,10 +4769,8 @@
       for (const [color, rects] of Object.entries(colorMap))
         svgPixels += `<g fill="${color}">${rects}</g>`;
 
+      timeEl.classList.remove(...ALL_CLOCK_STYLES);
       timeEl.classList.add('pixelart-style');
-      timeEl.classList.remove('analog-style', 'flip-style', 'led-style', 'led-green-style',
-        'led-blue-style', 'led-orange-style', 'led-mixed-style', 'segment-style', 'rolex-style',
-        'dotmatrix-style', 'cuckoo-style', 'math-style');
 
       timeEl.innerHTML = `
         <svg class="analog-svg" viewBox="0 0 ${svgW} ${svgH}" xmlns="http://www.w3.org/2000/svg"
@@ -4653,9 +4910,8 @@
         ringSvg += `<circle cx="${dx.toFixed(1)}" cy="${dy.toFixed(1)}" r="${r}" fill="${color}"${useGlow ? ` filter="url(#${glowFilter})"` : ''}/>`;
       }
 
+      timeEl.classList.remove(...ALL_CLOCK_STYLES);
       timeEl.classList.add('dotmatrix-style');
-      timeEl.classList.remove('analog-style', 'flip-style', 'led-style', 'led-green-style',
-        'led-blue-style', 'led-orange-style', 'led-mixed-style', 'segment-style', 'rolex-style');
 
       timeEl.innerHTML = `
         <svg class="analog-svg" viewBox="0 0 500 500" xmlns="http://www.w3.org/2000/svg">
@@ -4772,9 +5028,8 @@
         threeLink(538, 27) + wideLink(568, 27) + threeLink(598, 27) +
         `<rect x="${blx}" y="628" width="${bw}" height="14" rx="3" fill="url(#rLinkH)" stroke="rgba(0,0,0,0.2)" stroke-width="0.7"/>`;
 
+      timeEl.classList.remove(...ALL_CLOCK_STYLES);
       timeEl.classList.add('rolex-style');
-      timeEl.classList.remove('flip-style','led-style','led-green-style','led-blue-style',
-        'led-orange-style','led-mixed-style','segment-style','analog-style','dotmatrix-style');
 
       timeEl.innerHTML = `
         <svg class="analog-svg" viewBox="0 0 500 500" overflow="visible" xmlns="http://www.w3.org/2000/svg">
