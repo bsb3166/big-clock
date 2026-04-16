@@ -3366,6 +3366,31 @@
     let relaxAudioCtx = null;
     const relaxSounds = { rain: null, crickets: null, thunder: null };
 
+    // Nature sounds — cycle through real MP3 recordings
+    let relaxNatureLevel = 0;    // 0=off, 1=jungle, 2=river, 3=temple rain
+    let relaxNaturePressed = false; // true while mouse held for press-in visual
+    let relaxNatureAudio = null; // HTMLAudioElement
+    const natureTracks = [
+      null,
+      'assets/Dark-night-in-the-Amazon-rainforest-Jungle-sounds.mp3',
+      'assets/Marc-Anderson_Melk_River_Valley.mp3',
+      'assets/Mat-Eric-Hart_Saikan-Temple-Rainfall_Mat-Eric-Hart_96-24.mp3'
+    ];
+    function cycleNatureSound() {
+      relaxNatureLevel = (relaxNatureLevel + 1) % 4;
+      if (relaxNatureAudio) {
+        relaxNatureAudio.pause();
+        relaxNatureAudio.currentTime = 0;
+        relaxNatureAudio = null;
+      }
+      if (relaxNatureLevel > 0) {
+        relaxNatureAudio = new Audio(natureTracks[relaxNatureLevel]);
+        relaxNatureAudio.loop = true;
+        relaxNatureAudio.volume = 0.5;
+        relaxNatureAudio.play().catch(() => {});
+      }
+    }
+
     function getRelaxAudioCtx() {
       if (!relaxAudioCtx) {
         relaxAudioCtx = new (window.AudioContext || window.webkitAudioContext)();
@@ -3538,10 +3563,23 @@
     timeEl.addEventListener('pointerdown', (e) => {
       const btn = e.target.closest('[data-relax-btn]');
       if (!btn) return;
-      e.preventDefault();          // prevent text-selection drag on the SVG
+      e.preventDefault();
       const key = btn.getAttribute('data-relax-btn');
+      if (key === 'nature') {
+        // Nature button: show press-in visual now, cycle on release
+        relaxNaturePressed = true;
+        return;
+      }
       toggleRelaxSound(key);
     });
+    timeEl.addEventListener('pointerup', (e) => {
+      if (!relaxNaturePressed) return;
+      relaxNaturePressed = false;
+      cycleNatureSound();
+    });
+    // Release press visual if pointer leaves the clock area
+    timeEl.addEventListener('pointerleave', () => { relaxNaturePressed = false; });
+    timeEl.addEventListener('pointercancel', () => { relaxNaturePressed = false; });
 
     // ============================================================
     // Premium Minimal Clock — no hands, squircle case
@@ -3641,10 +3679,32 @@
             <text x="0" y="1" text-anchor="middle" dominant-baseline="central" font-size="18"${iconFilter}>${emoji}</text>
           </g>`;
       };
+      // Nature button (bottom-right): 3-dot indicator, cycles through MP3 tracks.
+      // Press-in visual driven by relaxNaturePressed (true while mouse held).
+      const naturePressed = relaxNaturePressed;
+      const nLevel = relaxNatureLevel;
+      const natureFace = naturePressed ? 'url(#pBtnFacePressed)' : 'url(#pBtnFace)';
+      const natureGrooveOp = naturePressed ? 0.4 : 0.2;
+      const dotOff = '#9a9a95';
+      const dotOn = '#4ade80';
+      const natureBtn = `
+        <g data-relax-btn="nature" transform="translate(442,458)" style="cursor:pointer;">
+          <circle r="22" fill="transparent"/>
+          <circle r="20" fill="none" stroke="rgba(0,0,0,${natureGrooveOp})" stroke-width="1.2"/>
+          <circle r="21" fill="none" stroke="rgba(255,255,255,0.12)" stroke-width="0.6"/>
+          <circle r="19" fill="${natureFace}"/>
+          ${naturePressed ? '<circle r="19" fill="url(#pBtnInsetShadow)"/>' : ''}
+          <!-- Three indicator dots -->
+          <circle cx="-7" cy="0" r="2.8" fill="${nLevel >= 1 ? dotOn : dotOff}" opacity="${nLevel >= 1 ? 1 : 0.4}"/>
+          <circle cx="0"  cy="0" r="2.8" fill="${nLevel >= 2 ? dotOn : dotOff}" opacity="${nLevel >= 2 ? 1 : 0.4}"/>
+          <circle cx="7"  cy="0" r="2.8" fill="${nLevel >= 3 ? dotOn : dotOff}" opacity="${nLevel >= 3 ? 1 : 0.4}"/>
+        </g>`;
+
       const relaxButtons =
         relaxBtn(78, 82,  'rain',     '🌧️') +
         relaxBtn(442, 82, 'crickets', '🌱') +
-        relaxBtn(78, 458, 'thunder',  '⚡');
+        relaxBtn(78, 458, 'thunder',  '⚡') +
+        natureBtn;
 
       // ---- 60 minute ticks: progressive minute fill + pendulum-eased second crossfade ----
       let ticks = '';
