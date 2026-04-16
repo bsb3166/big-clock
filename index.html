@@ -3006,6 +3006,24 @@
       } catch {}
     }
 
+    // URL hash shortcuts: #0 = default, #1 = led-green, … #15 = timer
+    // Order matches the dropdown menu. Both name and number work: #premium or #15.
+    const STYLE_ORDER = [
+      'default', 'led-green', 'led-blue', 'led-orange', 'led-mixed',
+      'segment', 'flip', 'retro', 'analog', 'rolex',
+      'dotmatrix', 'math', 'cuckoo', 'pixelart', 'premium', 'timer'
+    ];
+    function styleFromHash(hash) {
+      const h = (hash || '').replace('#', '').trim();
+      if (!h) return null;
+      // Try number first
+      const n = parseInt(h, 10);
+      if (!isNaN(n) && n >= 0 && n < STYLE_ORDER.length) return STYLE_ORDER[n];
+      // Try name match (case-insensitive)
+      const lower = h.toLowerCase();
+      return STYLE_ORDER.find(s => s === lower) || null;
+    }
+
     function applyClockStyle(styleKey) {
       const styleMap = {
         default: {
@@ -3120,6 +3138,12 @@
       }
       saveSettings();
       applyTimeScale();
+      // Update URL hash to reflect current style (silent — no hashchange event loop)
+      const idx = STYLE_ORDER.indexOf(resolvedStyle);
+      const newHash = idx >= 0 ? `#${idx}` : '';
+      if (window.location.hash !== newHash) {
+        history.replaceState(null, '', newHash || window.location.pathname);
+      }
     }
 
     function applyTheme(themeKey) {
@@ -6305,7 +6329,15 @@
     wcToggle.checked = showWorldClock;
 
     applyPanelOpacity();
-    applyClockStyle(savedSettings.clockStyle || 'default');
+    // URL hash overrides saved style: #0 through #15 or #premium, etc.
+    const hashStyle = styleFromHash(window.location.hash);
+    applyClockStyle(hashStyle || savedSettings.clockStyle || 'default');
+
+    // Live hash navigation: changing the URL hash switches the clock style
+    window.addEventListener('hashchange', () => {
+      const s = styleFromHash(window.location.hash);
+      if (s) applyClockStyle(s);
+    });
     
     if (savedSettings.alarmSound) {
       alarmSoundSelect.value = savedSettings.alarmSound;
