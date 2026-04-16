@@ -3403,13 +3403,13 @@
       // Slow LFO on gain for organic rolling intensity
       const gain = ctx.createGain(); gain.gain.value = 0.0;
       const lfo = ctx.createOscillator(); lfo.frequency.value = 0.12;
-      const lfoGain = ctx.createGain(); lfoGain.gain.value = 0.06;
+      const lfoGain = ctx.createGain(); lfoGain.gain.value = 0.04;
       lfo.connect(lfoGain).connect(gain.gain);
       src.connect(hpf).connect(lpf).connect(gain).connect(ctx.destination);
       src.start(); lfo.start();
-      // Fade in
+      // Fade in — reduced from 0.32 to balance with thunder in mix
       gain.gain.setValueAtTime(0.0, ctx.currentTime);
-      gain.gain.linearRampToValueAtTime(0.32, ctx.currentTime + 0.8);
+      gain.gain.linearRampToValueAtTime(0.18, ctx.currentTime + 0.8);
       return () => {
         const t = ctx.currentTime;
         gain.gain.cancelScheduledValues(t);
@@ -3425,7 +3425,7 @@
       const master = ctx.createGain(); master.gain.value = 0.0;
       master.connect(ctx.destination);
       master.gain.setValueAtTime(0.0, ctx.currentTime);
-      master.gain.linearRampToValueAtTime(0.22, ctx.currentTime + 0.6);
+      master.gain.linearRampToValueAtTime(0.12, ctx.currentTime + 0.6);
       // A "cricket" is a fast burst of chirps at ~4.5kHz with strong harmonics.
       // We'll schedule chirps on a repeating timer and let them overlap a bit.
       let stopped = false;
@@ -3441,7 +3441,7 @@
         tremGain.connect(g.gain);
         // Amplitude envelope: fast attack/decay
         g.gain.setValueAtTime(0, time);
-        g.gain.linearRampToValueAtTime(0.5, time + 0.008);
+        g.gain.linearRampToValueAtTime(0.35, time + 0.008);
         g.gain.linearRampToValueAtTime(0, time + dur);
         // Filter for "insect" resonance
         const bp = ctx.createBiquadFilter();
@@ -3495,16 +3495,16 @@
       const gain = ctx.createGain(); gain.gain.value = 0.0;
       src.connect(lpf).connect(gain).connect(ctx.destination);
       src.start();
-      // Base rumble fade-in
+      // Base rumble fade-in — raised to balance with rain/crickets in mix
       gain.gain.setValueAtTime(0.0, ctx.currentTime);
-      gain.gain.linearRampToValueAtTime(0.22, ctx.currentTime + 1.2);
+      gain.gain.linearRampToValueAtTime(0.32, ctx.currentTime + 1.2);
       // Schedule thunder claps every 6-14 sec
       let stopped = false;
       function clap() {
         if (stopped) return;
         const t = ctx.currentTime;
-        gain.gain.linearRampToValueAtTime(0.55, t + 0.4);
-        gain.gain.linearRampToValueAtTime(0.22, t + 2.8);
+        gain.gain.linearRampToValueAtTime(0.65, t + 0.4);
+        gain.gain.linearRampToValueAtTime(0.32, t + 2.8);
         setTimeout(clap, 6000 + Math.random() * 8000);
       }
       setTimeout(clap, 3000 + Math.random() * 3000);
