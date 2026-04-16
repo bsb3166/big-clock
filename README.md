@@ -4,6 +4,26 @@ A fullscreen web clock with large display styles, floating timers, world clocks,
 
 ![Big Clock Screenshot](assets/app-screenshot.png)
 
+## Clock Styles
+
+| `#0` Default | `#1` LED Neon Green | `#2` LED Neon Blue | `#3` LED Neon Orange |
+|:---:|:---:|:---:|:---:|
+| ![Default](assets/screenshot-default.png) | ![LED Green](assets/screenshot-led-green.png) | ![LED Blue](assets/screenshot-led-blue.png) | ![LED Orange](assets/screenshot-led-orange.png) |
+
+| `#4` Mixed Neon | `#5` 7-Segment | `#6` Flip Clock | `#7` Retro Tech |
+|:---:|:---:|:---:|:---:|
+| ![Mixed Neon](assets/screenshot-led-mixed.png) | ![7-Segment](assets/screenshot-segment.png) | ![Flip Clock](assets/screenshot-flip.png) | ![Retro Tech](assets/screenshot-retro.png) |
+
+| `#8` Analog Classic | `#9` Rolex Day-Date | `#10` Dot Matrix | `#11` Math Clock |
+|:---:|:---:|:---:|:---:|
+| ![Analog](assets/screenshot-analog.png) | ![Rolex](assets/screenshot-rolex.png) | ![Dot Matrix](assets/screenshot-dotmatrix.png) | ![Math](assets/screenshot-math.png) |
+
+| `#12` Cuckoo Clock | `#13` Pixel Art Scene | `#14` Premium Minimal | `#99` Timer |
+|:---:|:---:|:---:|:---:|
+| ![Cuckoo](assets/screenshot-cuckoo.png) | ![Pixel Art](assets/screenshot-pixelart.png) | ![Premium](assets/screenshot-premium.png) | ![Timer](assets/screenshot-timer.png) |
+
+> Append `#number` or `#name` to the URL to jump directly to any style (e.g. `https://example.com/#9` or `#rolex`).
+
 ## Features
 
 - **Large Centered Fullscreen Clock**
