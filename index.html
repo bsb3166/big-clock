@@ -3624,7 +3624,7 @@
         const active = relaxState[key];
         const faceFill = active ? 'url(#pBtnFaceActive)' : 'url(#pBtnFace)';
         const grooveOp = active ? 0.35 : 0.2;
-        const emojiOp = active ? 1 : 0.55;
+        const iconFilter = active ? 'url(#pBtnIconWarm)' : 'url(#pBtnIconEtch)';
         return `
           <g data-relax-btn="${key}" transform="translate(${x},${y})" style="cursor:pointer;">
             <!-- Hit area (invisible, generous) -->
@@ -3636,8 +3636,8 @@
             <circle r="19" fill="${faceFill}"/>
             ${active ? `<!-- Warm glow halo when active -->
             <circle r="19" fill="none" stroke="rgba(210,170,90,0.3)" stroke-width="2" filter="url(#pBtnGlow)"/>` : ''}
-            <!-- Emoji icon -->
-            <text x="0" y="1" text-anchor="middle" dominant-baseline="central" font-size="18" opacity="${emojiOp}">${emoji}</text>
+            <!-- Emoji icon — desaturated to monochrome shadow via SVG filter -->
+            <text x="0" y="1" text-anchor="middle" dominant-baseline="central" font-size="18" filter="${iconFilter}">${emoji}</text>
           </g>`;
       };
       const relaxButtons =
@@ -3839,13 +3839,34 @@
               <stop offset="82%"  stop-color="#b0a088"/>
               <stop offset="100%" stop-color="#9a8e78"/>
             </linearGradient>
-            <!-- Subtle warm glow for active icon -->
+            <!-- Subtle warm glow for active button halo -->
             <filter id="pBtnGlow" filterUnits="userSpaceOnUse" x="-60" y="-60" width="640" height="660">
               <feGaussianBlur stdDeviation="2.5" result="b"/>
               <feMerge>
                 <feMergeNode in="b"/>
                 <feMergeNode in="SourceGraphic"/>
               </feMerge>
+            </filter>
+            <!-- Etched monochrome: strip emoji color → uniform grey shadow -->
+            <filter id="pBtnIconEtch" x="-20%" y="-20%" width="140%" height="140%">
+              <feColorMatrix type="saturate" values="0"/>
+              <feComponentTransfer>
+                <feFuncR type="linear" slope="0.5" intercept="0.18"/>
+                <feFuncG type="linear" slope="0.5" intercept="0.18"/>
+                <feFuncB type="linear" slope="0.5" intercept="0.17"/>
+                <feFuncA type="linear" slope="0.55"/>
+              </feComponentTransfer>
+            </filter>
+            <!-- Active: warm-tinted monochrome with soft glow -->
+            <filter id="pBtnIconWarm" x="-30%" y="-30%" width="160%" height="160%">
+              <feColorMatrix type="saturate" values="0"/>
+              <feComponentTransfer>
+                <feFuncR type="linear" slope="0.55" intercept="0.32"/>
+                <feFuncG type="linear" slope="0.45" intercept="0.22"/>
+                <feFuncB type="linear" slope="0.3" intercept="0.1"/>
+                <feFuncA type="linear" slope="0.9"/>
+              </feComponentTransfer>
+              <feGaussianBlur stdDeviation="0.4"/>
             </filter>
           </defs>
 
