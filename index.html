@@ -3392,6 +3392,10 @@
     let relaxAudioCtx = null;
     const relaxSounds = { rain: null, crickets: null, thunder: null };
 
+    // Sunrise / sunset state for Premium Minimal clock
+    let premiumSunData = null;   // { sunrise, sunset, solarNoon, lat, lng, dateStr } — minutes from midnight local
+    let premiumGeoFetched = false;
+
     // Nature sounds — cycle through real MP3 recordings
     let relaxNatureLevel = 0;    // 0=off, 1=jungle, 2=river, 3=temple rain
     let relaxNaturePressed = false; // true while mouse held for press-in visual
@@ -3653,6 +3657,62 @@
       litOpacity: 1.0                            // full opacity — let glow filter soften it
     };
 
+    // ---- Sunrise / sunset calculation (NOAA simplified algorithm) ----
+    // Returns { sunrise, sunset, solarNoon } in minutes from midnight LOCAL time,
+    // or null for polar night / midnight sun.
+    function calcSunTimes(lat, lng, date) {
+      const JD  = date.getTime() / 86400000 + 2440587.5;
+      const n   = Math.floor(JD) - 2451545.0 + 0.0008;
+      const Js  = n - lng / 360;
+      const M   = (((357.5291 + 0.98560028 * Js) % 360) + 360) % 360;
+      const Mr  = M * Math.PI / 180;
+      const C   = 1.9148 * Math.sin(Mr) + 0.02 * Math.sin(2*Mr) + 0.0003 * Math.sin(3*Mr);
+      const lam = (((M + C + 180 + 102.9372) % 360) + 360) % 360;
+      const lr  = lam * Math.PI / 180;
+      const Jtr = 2451545.5 + Js + 0.0053 * Math.sin(Mr) - 0.0069 * Math.sin(2*lr);
+      const sinD = Math.sin(lr) * Math.sin(23.4397 * Math.PI / 180);
+      const dec  = Math.asin(sinD);
+      const latr = lat * Math.PI / 180;
+      const cosW = (Math.sin(-0.8333 * Math.PI / 180) - Math.sin(latr) * sinD)
+                   / (Math.cos(latr) * Math.cos(dec));
+      if (Math.abs(cosW) > 1) return null; // polar night or midnight sun
+      const W   = Math.acos(cosW) * 180 / Math.PI;
+      const jdToLocalMin = jd => {
+        const d = new Date((jd - 2440587.5) * 86400000);
+        return d.getHours() * 60 + d.getMinutes() + d.getSeconds() / 60;
+      };
+      return {
+        sunrise:   jdToLocalMin(Jtr - W / 360),
+        sunset:    jdToLocalMin(Jtr + W / 360),
+        solarNoon: jdToLocalMin(Jtr)
+      };
+    }
+
+    function refreshSunData(lat, lng) {
+      const today  = new Date();
+      const dStr   = today.toDateString();
+      if (premiumSunData && premiumSunData.dateStr === dStr &&
+          premiumSunData.lat === lat && premiumSunData.lng === lng) return;
+      const t = calcSunTimes(lat, lng, today);
+      if (t) premiumSunData = { ...t, lat, lng, dateStr: dStr };
+    }
+
+    // Call once; uses geolocation with timezone-offset fallback.
+    function initSunData() {
+      if (premiumGeoFetched) return;
+      premiumGeoFetched = true;
+      const fallback = () => {
+        const off = -new Date().getTimezoneOffset() / 60; // hours east
+        refreshSunData(35, ((off * 15) % 360 + 360) % 360 - 180);
+      };
+      if (navigator.geolocation) {
+        navigator.geolocation.getCurrentPosition(
+          pos => refreshSunData(pos.coords.latitude, pos.coords.longitude),
+          fallback, { timeout: 6000 }
+        );
+      } else { fallback(); }
+    }
+
     // Pendulum easing (Foucault reference): slow at extremes, faster in middle
     function premiumPendulumEase(t) {
       // t in [0,1]. Cosine-based SHM: 0 → 1 with soft start and end.
@@ -3803,12 +3863,115 @@
              <path d="M 5,-9 A 11,11 0 1,0 5,9 A 8,8 0 1,1 5,-9 Z" fill="#9fc6ff"/>
            </g>`;
 
+      // ---- Sunrise / sunset arc (below case) ----
+      initSunData();
+      // Refresh daily in case of date change
+      if (premiumSunData) refreshSunData(premiumSunData.lat, premiumSunData.lng);
+
+      let sunArcSvg = '';
+      if (premiumSunData) {
+        const { sunrise, sunset } = premiumSunData;
+        const nowMin = h24 * 60 + mins + secs / 60;
+        const daySpan = sunset - sunrise;
+
+        // Arc geometry — inside the extended SVG (viewBox 0 0 520 660)
+        const aLeft = 52, aRight = 468, aCx = 260;
+        const aY0 = 630;   // horizon y (where sun rises/sets)
+        const aPeak = 570; // arc apex y (solar noon)
+
+        // Quadratic bezier: P0=(aLeft,aY0) P1=(aCx,aPeak) P2=(aRight,aY0)
+        const bez = t => ({
+          x: (1-t)*(1-t)*aLeft  + 2*(1-t)*t*aCx + t*t*aRight,
+          y: (1-t)*(1-t)*aY0   + 2*(1-t)*t*aPeak + t*t*aY0
+        });
+
+        const isDaytime = nowMin >= sunrise && nowMin <= sunset;
+        const t = daySpan > 0 ? Math.max(0, Math.min(1, (nowMin - sunrise) / daySpan)) : 0;
+        const sunPos = bez(t);
+
+        // Build lit-arc path (approximate bezier with line segments up to t)
+        let litPath = '';
+        if (isDaytime && t > 0) {
+          const steps = 30;
+          const endStep = Math.max(1, Math.round(t * steps));
+          let d = `M ${aLeft.toFixed(1)},${aY0.toFixed(1)}`;
+          for (let i = 1; i <= endStep; i++) {
+            const p = bez(i / steps);
+            d += ` L ${p.x.toFixed(1)},${p.y.toFixed(1)}`;
+          }
+          litPath = `<path d="${d}" fill="none" stroke="${P.warmGlow}" stroke-width="2" stroke-linecap="round" opacity="0.75"/>`;
+        }
+
+        // Format time: respects 12/24hr setting
+        const fmtT = totalMin => {
+          const h = Math.floor(((totalMin % 1440) + 1440) % 1440 / 60);
+          const m = Math.floor(totalMin % 60);
+          if (use24Hour) return `${String(h).padStart(2,'0')}:${String(m).padStart(2,'0')}`;
+          const h12 = h % 12 || 12, ap = h >= 12 ? 'PM' : 'AM';
+          return `${h12}:${String(m).padStart(2,'0')} ${ap}`;
+        };
+
+        // Which event is next?
+        const nextIsSunset = nowMin < sunset;
+        const nextLabel = nextIsSunset ? 'SUNSET' : 'SUNRISE';
+        const nextTime  = fmtT(nextIsSunset ? sunset : sunrise);
+
+        const sunDot = isDaytime ? `
+          <circle cx="${sunPos.x.toFixed(1)}" cy="${sunPos.y.toFixed(1)}" r="5.5" fill="${P.warmGlowStrong}"/>
+          <circle cx="${sunPos.x.toFixed(1)}" cy="${sunPos.y.toFixed(1)}" r="5.5" fill="${P.warmGlowStrong}" filter="url(#pHourGlow)" opacity="0.6"/>` : '';
+
+        sunArcSvg = `
+          <!-- Sunrise/Sunset Panel -->
+          <g>
+            <!-- Subtle panel background -->
+            <rect x="16" y="539" width="488" height="113" rx="18" fill="rgba(10,8,5,0.55)"/>
+            <!-- "Next event" label -->
+            <text x="260" y="560" text-anchor="middle"
+              font-family="'Helvetica Neue','Inter',Arial,sans-serif"
+              font-size="9.5" letter-spacing="2.5" font-weight="500"
+              fill="rgba(255,242,208,0.5)">${nextLabel}</text>
+            <!-- Prominent upcoming time -->
+            <text x="260" y="582" text-anchor="middle"
+              font-family="'Helvetica Neue','Inter',Arial,sans-serif"
+              font-size="21" font-weight="300" letter-spacing="1"
+              fill="${P.warmGlowStrong}">${nextTime}</text>
+            <!-- Full arc (dim track) -->
+            <path d="M ${aLeft},${aY0} Q ${aCx},${aPeak} ${aRight},${aY0}"
+              fill="none" stroke="rgba(255,242,208,0.13)" stroke-width="1.5"/>
+            <!-- Horizon line -->
+            <line x1="${aLeft}" y1="${aY0}" x2="${aRight}" y2="${aY0}"
+              stroke="rgba(255,255,255,0.07)" stroke-width="0.8"/>
+            <!-- Lit portion of arc -->
+            ${litPath}
+            <!-- Sun dot on arc -->
+            ${sunDot}
+            <!-- Sunrise label (left) -->
+            <text x="${aLeft}" y="${aY0 + 14}" text-anchor="middle"
+              font-family="'Helvetica Neue','Inter',Arial,sans-serif"
+              font-size="8" letter-spacing="1.5"
+              fill="rgba(255,242,208,0.4)">RISE</text>
+            <text x="${aLeft}" y="${aY0 + 25}" text-anchor="middle"
+              font-family="'Helvetica Neue','Inter',Arial,sans-serif"
+              font-size="9" fill="rgba(255,242,208,0.6)">${fmtT(sunrise)}</text>
+            <!-- Sunset label (right) -->
+            <text x="${aRight}" y="${aY0 + 14}" text-anchor="middle"
+              font-family="'Helvetica Neue','Inter',Arial,sans-serif"
+              font-size="8" letter-spacing="1.5"
+              fill="rgba(255,242,208,0.4)">SET</text>
+            <text x="${aRight}" y="${aY0 + 25}" text-anchor="middle"
+              font-family="'Helvetica Neue','Inter',Arial,sans-serif"
+              font-size="9" fill="rgba(255,242,208,0.6)">${fmtT(sunset)}</text>
+          </g>`;
+      }
+
       timeEl.classList.remove(...ALL_CLOCK_STYLES);
       timeEl.classList.add('premium-style');
       timeEl.style.setProperty('--premium-warm', P.warmGlow);
+      // Expand container height to accommodate the sun arc panel below the case
+      timeEl.style.height = premiumSunData ? '710px' : '560px';
 
       timeEl.innerHTML = `
-        <svg class="premium-svg" viewBox="0 0 520 540" xmlns="http://www.w3.org/2000/svg" overflow="visible">
+        <svg class="premium-svg" viewBox="0 0 520 ${premiumSunData ? 660 : 540}" xmlns="http://www.w3.org/2000/svg" overflow="visible">
           <defs>
             <!-- Polished aluminum case — multi-stop reflection curve.
                  Real polished metal reflects the environment: bright at the top
@@ -3975,6 +4138,8 @@
             <!-- Relax Time buttons on the bezel (3 corners) -->
             ${relaxButtons}
           </g>
+          <!-- Sunrise/sunset arc panel (outside case shadow group) -->
+          ${sunArcSvg}
         </svg>
       `;
     }
@@ -5801,6 +5966,10 @@
 
       const hoursText = use24Hour ? String(h24).padStart(2, '0') : String(h24 % 12 || 12);
       const ampmText = h24 >= 12 ? 'PM' : 'AM';
+
+      // Reset premium height override for all non-premium styles;
+      // renderPremiumClock will re-apply it when active.
+      if (clockStyleSelect.value !== 'premium') timeEl.style.height = '';
 
       if (clockStyleSelect.value === 'analog') {
         renderAnalogClock(h24, now.getMinutes(), secs, now.getMilliseconds());
