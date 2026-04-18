@@ -349,11 +349,11 @@ classDiagram
     class Settings {
         +boolean use24Hour
         +string clockStyle
-        +number sizeScale (0.1–4.0)
-        +number panelOpacity (0–100)
+        +number sizeScale
+        +number panelOpacity
         +string alarmSound
         +string theme
-        +string customBg (base64)
+        +string customBg
         +boolean showYt
         +boolean showDateDisplay
         +boolean showLunarDate
@@ -362,15 +362,17 @@ classDiagram
         +boolean showWorldClock
         +boolean lockScreenOnDone
         +number ytVolume
-        +TodoItem[] todoItems
-        +object todoSize {width, height}
         +string[] alarmTimes
-        +YTTrack[] ytPlaylist
     }
 
     class TodoItem {
         +string text
         +boolean completed
+    }
+
+    class TodoSize {
+        +number width
+        +number height
     }
 
     class YTTrack {
@@ -379,8 +381,9 @@ classDiagram
         +string author
     }
 
-    Settings --> TodoItem : todoItems[]
-    Settings --> YTTrack : ytPlaylist[]
+    Settings "1" --> "many" TodoItem : todoItems
+    Settings "1" --> "1" TodoSize : todoSize
+    Settings "1" --> "many" YTTrack : ytPlaylist
 ```
 
 ---
