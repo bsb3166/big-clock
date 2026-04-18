@@ -3926,57 +3926,53 @@
         const otherLabel = nextIsSunrise ? 'Sunset' : 'Sunrise';
         const otherTime  = fmtT(nextIsSunrise ? sunset : sunrise);
 
-        // On the Premium clock's warm-gray dial (#dad7cf), light colors vanish.
-        // Use warm-gold / dark-amber tones so the arc and text are readable.
-        const arcTrackColor  = 'rgba(180,145,55,0.30)';   // dim gold — whole track
-        const arcDayColor    = 'rgba(220,175,65,0.52)';   // brighter gold — above-horizon
-        const arcLitColor    = P.warmGlowStrong;           // saturated amber — elapsed
-        const horizonColor   = 'rgba(130,100,45,0.38)';   // dark warm — horizon line
-        const labelTextColor = 'rgba(110,80,20,0.70)';    // dark warm amber — small labels
-        const bigTimeColor   = P.warmGlowStrong;           // saturated amber — big time
+        // ── Skeuomorphic scratch / engraving on warm-gray aluminum dial ──
+        // Every element is rendered twice: a near-white highlight shifted 1 px down
+        // (light catching the far edge of the groove) and a dark shadow on top
+        // (the groove itself). Together they read as a physically cut line.
+        const scrG = 'rgba(48,38,22,0.62)';    // groove: warm dark shadow
+        const scrH = 'rgba(255,253,244,0.58)'; // highlight: light catching groove edge
+        const ff   = `font-family="'Helvetica Neue','Inter',Arial,sans-serif"`;
+
+        // Helpers — build scratch SVG strings
+        const eText = (x, y, attrs, txt) =>
+          `<text x="${x}" y="${y+1}" text-anchor="middle" ${ff} ${attrs} fill="${scrH}">${txt}</text>` +
+          `<text x="${x}" y="${y}"   text-anchor="middle" ${ff} ${attrs} fill="${scrG}">${txt}</text>`;
+
+        const ePath = (d, w) => {
+          const base = `fill="none" stroke-width="${w}" stroke-linecap="round" stroke-linejoin="round"`;
+          return `<path d="${d}" ${base} stroke="${scrH}" transform="translate(0,1)"/>` +
+                 `<path d="${d}" ${base} stroke="${scrG}"/>`;
+        };
+
+        const eLine = (x1, y1, x2, y2, w) =>
+          `<line x1="${x1}" y1="${y1+1}" x2="${x2}" y2="${y2+1}" stroke="${scrH}" stroke-width="${w}"/>` +
+          `<line x1="${x1}" y1="${y1}"   x2="${x2}" y2="${y2}"   stroke="${scrG}" stroke-width="${w}"/>`;
+
+        const hx1 = parseFloat(tailL.toFixed(1)), hx2 = parseFloat(tailR.toFixed(1));
 
         sunArcSvg = `
           <g>
-            <!-- Small label: emoji + SUNRISE / SUNSET -->
-            <text x="${arcCX}" y="233" text-anchor="middle"
-              font-family="'Helvetica Neue','Inter',Arial,sans-serif"
-              font-size="9" letter-spacing="2.2" font-weight="600"
-              fill="${labelTextColor}">${emoji} ${nextLabel}</text>
+            <!-- Label: engraved emoji + SUNRISE/SUNSET -->
+            ${eText(arcCX, 233, 'font-size="9"  letter-spacing="2.2" font-weight="600"', `${emoji} ${nextLabel}`)}
 
-            <!-- Large upcoming time -->
-            <text x="${arcCX}" y="253" text-anchor="middle"
-              font-family="'Helvetica Neue','Inter',Arial,sans-serif"
-              font-size="22" font-weight="300" letter-spacing="0.5"
-              fill="${bigTimeColor}">${nextTime}</text>
+            <!-- Large time: engraved -->
+            ${eText(arcCX, 253, 'font-size="22" letter-spacing="0.5" font-weight="300"', nextTime)}
 
-            <!-- Full arc track — dim gold, underground tails visible below horizon -->
-            <path d="${fullArcD}"
-              fill="none" stroke="${arcTrackColor}" stroke-width="1.6"
-              stroke-linejoin="round" stroke-linecap="round"/>
+            <!-- Arc track: engraved scratch (full extended curve with underground tails) -->
+            ${ePath(fullArcD, 1.6)}
 
-            <!-- Above-horizon arc — slightly brighter overlay -->
-            <path d="${dayArcD}"
-              fill="none" stroke="${arcDayColor}" stroke-width="1.6"
-              stroke-linejoin="round" stroke-linecap="round"/>
+            <!-- Horizon line: engraved scratch cutting through the arc -->
+            ${eLine(hx1, ABY, hx2, ABY, 0.9)}
 
-            <!-- Horizon line — cuts straight through the arc -->
-            <line x1="${tailL.toFixed(1)}" y1="${ABY}" x2="${tailR.toFixed(1)}" y2="${ABY}"
-              stroke="${horizonColor}" stroke-width="0.9"/>
-
-            <!-- Lit arc (sunrise → now, warm amber glow) -->
-            ${litD ? `<path d="${litD}" fill="none" stroke="${arcLitColor}"
-              stroke-width="2.2" stroke-linecap="round" opacity="0.92"/>` : ''}
-
-            <!-- Sun dot (daytime only) -->
+            <!-- Sun dot — the only non-scratch element (stays luminous) -->
             ${isDaytime ? `
               <circle cx="${sunX.toFixed(1)}" cy="${sunY.toFixed(1)}" r="4.5" fill="white" opacity="0.95"/>
-              <circle cx="${sunX.toFixed(1)}" cy="${sunY.toFixed(1)}" r="7" fill="${P.warmGlowStrong}"
+              <circle cx="${sunX.toFixed(1)}" cy="${sunY.toFixed(1)}" r="7"   fill="${P.warmGlowStrong}"
                 filter="url(#pMinuteGlow)" opacity="0.45"/>` : ''}
 
-            <!-- Other-event reference -->
-            <text x="${arcCX}" y="342" text-anchor="middle"
-              font-family="'Helvetica Neue','Inter',Arial,sans-serif"
-              font-size="9" fill="${labelTextColor}" opacity="0.80">${otherLabel}: ${otherTime}</text>
+            <!-- Other-event reference: engraved -->
+            ${eText(arcCX, 342, 'font-size="9" font-weight="400"', `${otherLabel}: ${otherTime}`)}
           </g>`;
       }
 
