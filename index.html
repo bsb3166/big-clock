@@ -3875,14 +3875,14 @@
         const isDaytime = nowMin >= sunrise && nowMin <= sunset;
         const tNow = daySpan > 0 ? Math.max(0, Math.min(1, (nowMin - sunrise) / daySpan)) : 0;
 
-        // Arc geometry — no card background, arc centered in dial
-        // AL/AR are the x coords where the arc crosses the horizon (sunrise/sunset anchors)
-        // EXT extends the sine tails below the horizon on both sides (iOS style)
-        // ABY is set so the arc peak (ABY-AMP) clears the large time text baseline (~y=253)
-        const AL = 180, AR = 340;   // horizon crossing x
-        const ABY = 300;            // horizon y  (peak = 300-36 = 264, clears time text)
-        const AMP = 36;             // peak height above horizon
-        const EXT = 0.20;           // tail extension past horizon (t: −EXT … 1+EXT)
+        // Arc geometry — tighter, taller arc matching iOS Weather widget proportions
+        // AL/AR span is narrow (84 px) so the curve rises steeply like iOS (not a wide flat hump)
+        // AMP is tall relative to span → aspect ratio ≈ 1.9 (vs old 4.4)
+        // EXT=0.25 makes the underground tails visibly dip below the horizon
+        const AL = 218, AR = 302;   // horizon crossing x  (span = 84 px, centred at 260)
+        const ABY = 305;            // horizon y  (peak = 305-44 = 261, clears time text ~y=253)
+        const AMP = 44;             // peak height — taller for iOS-like steepness
+        const EXT = 0.25;           // tail extension (t: −0.25 … 1.25) — prominent dip below
         const STEPS = 80;
 
         // Helper: point on extended sine at parameter t
@@ -3974,7 +3974,7 @@
                 filter="url(#pMinuteGlow)" opacity="0.45"/>` : ''}
 
             <!-- Other-event reference -->
-            <text x="${arcCX}" y="328" text-anchor="middle"
+            <text x="${arcCX}" y="342" text-anchor="middle"
               font-family="'Helvetica Neue','Inter',Arial,sans-serif"
               font-size="9" fill="${labelTextColor}" opacity="0.80">${otherLabel}: ${otherTime}</text>
           </g>`;
