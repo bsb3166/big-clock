@@ -3847,10 +3847,10 @@
         nums += `<text x="${nx.toFixed(2)}" y="${ny.toFixed(2)}" text-anchor="middle" dominant-baseline="central" font-size="30" font-weight="${weight}" font-family="'Helvetica Neue','Inter',Arial,sans-serif" fill="${fill}" letter-spacing="0.5" opacity="${opacity}" ${filter}>${i}</text>`;
       }
 
-      // ---- Day/night icon above center (shown only when no sun data) ----
+      // ---- Day/night icon above center (always shown) ----
       const isDay = h24 >= 6 && h24 < 18;
       const iconY = cy - 60;
-      const dayNightIcon = !premiumSunData ? (isDay
+      const dayNightIcon = isDay
         ? `<g opacity="0.55" transform="translate(${cx},${iconY})">
              <circle cx="0" cy="0" r="5" fill="#e0a050"/>
              ${[0,45,90,135,180,225,270,315].map(a => {
@@ -3861,7 +3861,7 @@
            </g>`
         : `<g transform="translate(${cx},${iconY})" filter="url(#pMoonGlow)">
              <path d="M 5,-9 A 11,11 0 1,0 5,9 A 8,8 0 1,1 5,-9 Z" fill="#9fc6ff"/>
-           </g>`) : '';
+           </g>`;
 
       // ---- Sunrise / sunset arc (iOS-widget style, no card background) ----
       initSunData();
