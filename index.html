@@ -3722,11 +3722,17 @@
       if (premiumGeoFetched) return;
       premiumGeoFetched = true;
       const fallback = () => {
-        const off = -new Date().getTimezoneOffset() / 60; // hours east of UTC
-        // Longitude ≈ 15° per timezone hour. Clamp to [-180, 180] for safety.
-        // Previous formula inverted the sign for negative offsets (PDT → +75°
-        // instead of -105°), which made calcSunTimes return swapped values.
-        const lng = Math.max(-180, Math.min(180, off * 15));
+        // Use the zone's STANDARD-time UTC offset (not the current one, which
+        // shifts during DST). DST always moves the clock forward 1h, making
+        // getTimezoneOffset smaller; the larger of Jan/Jul offsets is always
+        // the standard offset. For America/Los_Angeles this yields UTC-8 →
+        // lng = -120 (close to LA/SF) even during PDT, instead of the zone
+        // centre's DST-shifted -105 (which is MDT territory).
+        const y   = new Date().getFullYear();
+        const jan = new Date(y, 0, 1).getTimezoneOffset();
+        const jul = new Date(y, 6, 1).getTimezoneOffset();
+        const stdOffHrs = -Math.max(jan, jul) / 60;
+        const lng = Math.max(-180, Math.min(180, stdOffHrs * 15));
         refreshSunData(35, lng);
       };
       if (navigator.geolocation) {
@@ -3992,7 +3998,6 @@
 
         // Labels: what comes next?
         const nextIsSunrise = nowMin < sunrise || nowMin > sunset;
-        const emoji      = nextIsSunrise ? '🌅' : '🌄';
         const nextLabel  = nextIsSunrise ? 'SUNRISE' : 'SUNSET';
         const nextTime   = fmtT(nextIsSunrise ? sunrise : sunset);
         const otherLabel = nextIsSunrise ? 'Sunset' : 'Sunrise';
@@ -4029,11 +4034,13 @@
 
         sunArcSvg = `
           <g>
-            <!-- iOS-style label: left-aligned, white, SF Pro Display, emoji + SUNSET/SUNRISE -->
-            <text x="${labelX}" y="231"
-              text-anchor="start" ${iosFF}
+            <!-- SUNRISE/SUNSET label: left-aligned, engraved scratch, SF Pro Display -->
+            <text x="${labelX}" y="232" text-anchor="start" ${iosFF}
               font-size="9.5" letter-spacing="1.8" font-weight="600"
-              fill="rgba(255,255,255,0.80)">${emoji} ${nextLabel}</text>
+              fill="${scrH}">${nextLabel}</text>
+            <text x="${labelX}" y="231" text-anchor="start" ${iosFF}
+              font-size="9.5" letter-spacing="1.8" font-weight="600"
+              fill="${scrG}">${nextLabel}</text>
 
             <!-- Large time: engraved scratch -->
             ${eText(arcCX, 253, 'middle', 'font-size="22" letter-spacing="0.5" font-weight="300"', nextTime)}
