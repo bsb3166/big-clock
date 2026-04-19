@@ -6102,7 +6102,7 @@
       const moonIdx = getMoonPhase(now);
       const moon = MOON_PHASES[moonIdx];
 
-      dateEl.textContent = dateFmt.format(now) + '  ' + moon.emoji;
+      dateEl.textContent = dateFmt.format(now);
       dateEl.style.display = showDateDisplay ? 'block' : 'none';
 
       if (lunarDateEl) {
