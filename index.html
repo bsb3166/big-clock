@@ -3920,24 +3920,26 @@
 
         // Labels: what comes next?
         const nextIsSunrise = nowMin < sunrise || nowMin > sunset;
-        const emoji      = nextIsSunrise ? '🌅' : '🌇';
+        const emoji      = nextIsSunrise ? '🌅' : '🌄';
         const nextLabel  = nextIsSunrise ? 'SUNRISE' : 'SUNSET';
         const nextTime   = fmtT(nextIsSunrise ? sunrise : sunset);
         const otherLabel = nextIsSunrise ? 'Sunset' : 'Sunrise';
         const otherTime  = fmtT(nextIsSunrise ? sunset : sunrise);
 
-        // ── Skeuomorphic scratch / engraving on warm-gray aluminum dial ──
-        // Every element is rendered twice: a near-white highlight shifted 1 px down
-        // (light catching the far edge of the groove) and a dark shadow on top
-        // (the groove itself). Together they read as a physically cut line.
-        const scrG = 'rgba(48,38,22,0.62)';    // groove: warm dark shadow
-        const scrH = 'rgba(255,253,244,0.58)'; // highlight: light catching groove edge
+        // ── Skeuomorphic scratch / engraving — lighter pass ──
+        // Two layers per element: faint white highlight 1px lower (light catching groove edge)
+        // + slightly darker groove on top. Keeps the physical feel without being too heavy.
+        const scrG = 'rgba(48,38,22,0.30)';    // groove — lightened
+        const scrH = 'rgba(255,253,244,0.34)'; // highlight — lightened
         const ff   = `font-family="'Helvetica Neue','Inter',Arial,sans-serif"`;
 
-        // Helpers — build scratch SVG strings
-        const eText = (x, y, attrs, txt) =>
-          `<text x="${x}" y="${y+1}" text-anchor="middle" ${ff} ${attrs} fill="${scrH}">${txt}</text>` +
-          `<text x="${x}" y="${y}"   text-anchor="middle" ${ff} ${attrs} fill="${scrG}">${txt}</text>`;
+        // iOS label font stack (SF Pro Display where available)
+        const iosFF = `font-family="'SF Pro Display',-apple-system,BlinkMacSystemFont,system-ui,sans-serif"`;
+
+        // Helpers — scratch SVG strings
+        const eText = (x, y, anchor, attrs, txt) =>
+          `<text x="${x}" y="${y+1}" text-anchor="${anchor}" ${ff} ${attrs} fill="${scrH}">${txt}</text>` +
+          `<text x="${x}" y="${y}"   text-anchor="${anchor}" ${ff} ${attrs} fill="${scrG}">${txt}</text>`;
 
         const ePath = (d, w) => {
           const base = `fill="none" stroke-width="${w}" stroke-linecap="round" stroke-linejoin="round"`;
@@ -3950,14 +3952,19 @@
           `<line x1="${x1}" y1="${y1}"   x2="${x2}" y2="${y2}"   stroke="${scrG}" stroke-width="${w}"/>`;
 
         const hx1 = parseFloat(tailL.toFixed(1)), hx2 = parseFloat(tailR.toFixed(1));
+        // Left edge of label — aligns with arc's left tail, generous iOS-style padding
+        const labelX = hx1 + 6;
 
         sunArcSvg = `
           <g>
-            <!-- Label: engraved emoji + SUNRISE/SUNSET -->
-            ${eText(arcCX, 233, 'font-size="9"  letter-spacing="2.2" font-weight="600"', `${emoji} ${nextLabel}`)}
+            <!-- iOS-style label: left-aligned, white, SF Pro Display, emoji + SUNSET/SUNRISE -->
+            <text x="${labelX}" y="231"
+              text-anchor="start" ${iosFF}
+              font-size="9.5" letter-spacing="1.8" font-weight="600"
+              fill="rgba(255,255,255,0.80)">${emoji} ${nextLabel}</text>
 
-            <!-- Large time: engraved -->
-            ${eText(arcCX, 253, 'font-size="22" letter-spacing="0.5" font-weight="300"', nextTime)}
+            <!-- Large time: engraved scratch -->
+            ${eText(arcCX, 253, 'middle', 'font-size="22" letter-spacing="0.5" font-weight="300"', nextTime)}
 
             <!-- Arc track: engraved scratch (full extended curve with underground tails) -->
             ${ePath(fullArcD, 1.6)}
@@ -3971,8 +3978,8 @@
               <circle cx="${sunX.toFixed(1)}" cy="${sunY.toFixed(1)}" r="7"   fill="${P.warmGlowStrong}"
                 filter="url(#pMinuteGlow)" opacity="0.45"/>` : ''}
 
-            <!-- Other-event reference: engraved -->
-            ${eText(arcCX, 342, 'font-size="9" font-weight="400"', `${otherLabel}: ${otherTime}`)}
+            <!-- Other-event reference: engraved scratch -->
+            ${eText(arcCX, 342, 'middle', 'font-size="9" font-weight="400"', `${otherLabel}: ${otherTime}`)}
           </g>`;
       }
 
