@@ -3599,6 +3599,13 @@
     // so the browser never synthesizes the click event. pointerdown fires immediately
     // on press — no waiting for a matching up event on a now-dead element.
     timeEl.addEventListener('pointerdown', (e) => {
+      // Sun/moon icon — toggles sunrise/sunset display
+      const sunIcon = e.target.closest('[data-sun-toggle]');
+      if (sunIcon) {
+        e.preventDefault();
+        toggleSunArc();
+        return;
+      }
       const btn = e.target.closest('[data-relax-btn]');
       if (!btn) return;
       e.preventDefault();
@@ -3677,7 +3684,12 @@
       const C   = 1.9148 * Math.sin(Mr) + 0.02 * Math.sin(2*Mr) + 0.0003 * Math.sin(3*Mr);
       const lam = (((M + C + 180 + 102.9372) % 360) + 360) % 360;
       const lr  = lam * Math.PI / 180;
-      const Jtr = 2451545.5 + Js + 0.0053 * Math.sin(Mr) - 0.0069 * Math.sin(2*lr);
+      // NOAA solar-transit JD — Wikipedia reference uses 2451545.0, not .5.
+      // The stray .5 shifted every returned local time by exactly 12 hours; the
+      // old fallback lng=75 accidentally wrapped back to plausible values, but
+      // correcting the fallback longitude exposed this bug (solarNoon rolled to
+      // midnight, making isDaytime false all day).
+      const Jtr = 2451545.0 + Js + 0.0053 * Math.sin(Mr) - 0.0069 * Math.sin(2*lr);
       const sinD = Math.sin(lr) * Math.sin(23.4397 * Math.PI / 180);
       const dec  = Math.asin(sinD);
       const latr = lat * Math.PI / 180;
@@ -3710,8 +3722,12 @@
       if (premiumGeoFetched) return;
       premiumGeoFetched = true;
       const fallback = () => {
-        const off = -new Date().getTimezoneOffset() / 60; // hours east
-        refreshSunData(35, ((off * 15) % 360 + 360) % 360 - 180);
+        const off = -new Date().getTimezoneOffset() / 60; // hours east of UTC
+        // Longitude ≈ 15° per timezone hour. Clamp to [-180, 180] for safety.
+        // Previous formula inverted the sign for negative offsets (PDT → +75°
+        // instead of -105°), which made calcSunTimes return swapped values.
+        const lng = Math.max(-180, Math.min(180, off * 15));
+        refreshSunData(35, lng);
       };
       if (navigator.geolocation) {
         navigator.geolocation.getCurrentPosition(
@@ -3860,7 +3876,10 @@
       const iconY = cy - 90;   // moved up for clear separation from the sunrise/sunset block
       const iconScrG = 'rgba(48,38,22,0.38)';
       const iconScrH = 'rgba(255,253,244,0.40)';
-      const iconGroupAttrs = `transform="translate(${cx},${iconY})" style="cursor:pointer" onclick="toggleSunArc()"`;
+      // Use data-attr + pointerdown delegation (not inline onclick) — see comment at
+      // the delegation handler: innerHTML replaces the target every rAF frame, so
+      // click events don't fire. Delegated pointerdown on timeEl persists.
+      const iconGroupAttrs = `data-sun-toggle="1" transform="translate(${cx},${iconY})" style="cursor:pointer"`;
 
       const sunRays = [0,45,90,135,180,225,270,315].map(a => {
         const [x1,y1] = [Math.cos(a*Math.PI/180)*9,  Math.sin(a*Math.PI/180)*9];
@@ -3868,11 +3887,18 @@
         return { x1, y1, x2, y2 };
       });
 
+      // Transparent hit-target — default pointer-events="visiblePainted" on
+      // stroke-only (fill="none") icons means clicks in the empty center pass
+      // through to the dial. This solid-fill (transparent) circle catches
+      // clicks across the whole icon bounding area.
+      const iconHit = `<circle cx="0" cy="0" r="16" fill="transparent"/>`;
+
       let dayNightIcon;
       if (isDay) {
         if (showSunArc) {
           // Active sun — illuminated (current warm amber look)
           dayNightIcon = `<g opacity="0.75" ${iconGroupAttrs}>
+            ${iconHit}
             <circle cx="0" cy="0" r="5" fill="#e0a050"/>
             ${sunRays.map(r => `<line x1="${r.x1.toFixed(2)}" y1="${r.y1.toFixed(2)}" x2="${r.x2.toFixed(2)}" y2="${r.y2.toFixed(2)}" stroke="#e0a050" stroke-width="1.5" stroke-linecap="round"/>`).join('')}
           </g>`;
@@ -3882,6 +3908,7 @@
             `<line x1="${r.x1.toFixed(2)}" y1="${(r.y1+dy).toFixed(2)}" x2="${r.x2.toFixed(2)}" y2="${(r.y2+dy).toFixed(2)}" stroke="${stroke}" stroke-width="1.3" stroke-linecap="round"/>`
           ).join('');
           dayNightIcon = `<g ${iconGroupAttrs}>
+            ${iconHit}
             <circle cx="0" cy="1" r="5" fill="none" stroke="${iconScrH}" stroke-width="1.3"/>
             ${rays(iconScrH, 1)}
             <circle cx="0" cy="0" r="5" fill="none" stroke="${iconScrG}" stroke-width="1.3"/>
@@ -3891,13 +3918,17 @@
       } else {
         if (showSunArc) {
           // Active moon — illuminated (current glow)
-          dayNightIcon = `<g ${iconGroupAttrs} filter="url(#pMoonGlow)">
-            <path d="M 5,-9 A 11,11 0 1,0 5,9 A 8,8 0 1,1 5,-9 Z" fill="#9fc6ff"/>
+          dayNightIcon = `<g ${iconGroupAttrs}>
+            ${iconHit}
+            <g filter="url(#pMoonGlow)">
+              <path d="M 5,-9 A 11,11 0 1,0 5,9 A 8,8 0 1,1 5,-9 Z" fill="#9fc6ff"/>
+            </g>
           </g>`;
         } else {
           // Inactive moon — engraved scratch
           const moonD = 'M 5,-9 A 11,11 0 1,0 5,9 A 8,8 0 1,1 5,-9 Z';
           dayNightIcon = `<g ${iconGroupAttrs}>
+            ${iconHit}
             <path d="${moonD}" fill="none" stroke="${iconScrH}" stroke-width="1.3" transform="translate(0,1)"/>
             <path d="${moonD}" fill="none" stroke="${iconScrG}" stroke-width="1.3"/>
           </g>`;
