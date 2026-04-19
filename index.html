@@ -2690,6 +2690,7 @@
     let showDateDisplay = true;
     let showTz = true;
     let showWorldClock = true;
+    let showSunArc = false;   // Premium clock: toggle sunrise/sunset info by clicking the sun/moon icon
     let ytHistory = [];      // [{videoId, title, author}]
     let ytHistoryIndex = -1;
     let ytNavigating = false; // true when prev/next is in progress
@@ -2998,6 +2999,7 @@
         showDateDisplay,
         showTz,
         showWorldClock,
+        showSunArc,
         lockScreenOnDone: lockScreenToggle.checked
       };
 
@@ -3395,6 +3397,12 @@
     // Sunrise / sunset state for Premium Minimal clock
     let premiumSunData = null;   // { sunrise, sunset, solarNoon, lat, lng, dateStr } — minutes from midnight local
     let premiumGeoFetched = false;
+
+    // Toggle sunrise/sunset display — clicking the sun/moon icon flips this
+    function toggleSunArc() {
+      showSunArc = !showSunArc;
+      saveSettings();
+    }
 
     // Nature sounds — cycle through real MP3 recordings
     let relaxNatureLevel = 0;    // 0=off, 1=jungle, 2=river, 3=temple rain
@@ -3847,28 +3855,61 @@
         nums += `<text x="${nx.toFixed(2)}" y="${ny.toFixed(2)}" text-anchor="middle" dominant-baseline="central" font-size="30" font-weight="${weight}" font-family="'Helvetica Neue','Inter',Arial,sans-serif" fill="${fill}" letter-spacing="0.5" opacity="${opacity}" ${filter}>${i}</text>`;
       }
 
-      // ---- Day/night icon above center (always shown) ----
+      // ---- Day/night icon (click to toggle sunrise/sunset display) ----
       const isDay = h24 >= 6 && h24 < 18;
-      const iconY = cy - 60;
-      const dayNightIcon = isDay
-        ? `<g opacity="0.55" transform="translate(${cx},${iconY})">
-             <circle cx="0" cy="0" r="5" fill="#e0a050"/>
-             ${[0,45,90,135,180,225,270,315].map(a => {
-               const [x1,y1] = [Math.cos(a*Math.PI/180)*9,  Math.sin(a*Math.PI/180)*9];
-               const [x2,y2] = [Math.cos(a*Math.PI/180)*13, Math.sin(a*Math.PI/180)*13];
-               return `<line x1="${x1.toFixed(2)}" y1="${y1.toFixed(2)}" x2="${x2.toFixed(2)}" y2="${y2.toFixed(2)}" stroke="#e0a050" stroke-width="1.5" stroke-linecap="round"/>`;
-             }).join('')}
-           </g>`
-        : `<g transform="translate(${cx},${iconY})" filter="url(#pMoonGlow)">
-             <path d="M 5,-9 A 11,11 0 1,0 5,9 A 8,8 0 1,1 5,-9 Z" fill="#9fc6ff"/>
-           </g>`;
+      const iconY = cy - 90;   // moved up for clear separation from the sunrise/sunset block
+      const iconScrG = 'rgba(48,38,22,0.38)';
+      const iconScrH = 'rgba(255,253,244,0.40)';
+      const iconGroupAttrs = `transform="translate(${cx},${iconY})" style="cursor:pointer" onclick="toggleSunArc()"`;
+
+      const sunRays = [0,45,90,135,180,225,270,315].map(a => {
+        const [x1,y1] = [Math.cos(a*Math.PI/180)*9,  Math.sin(a*Math.PI/180)*9];
+        const [x2,y2] = [Math.cos(a*Math.PI/180)*13, Math.sin(a*Math.PI/180)*13];
+        return { x1, y1, x2, y2 };
+      });
+
+      let dayNightIcon;
+      if (isDay) {
+        if (showSunArc) {
+          // Active sun — illuminated (current warm amber look)
+          dayNightIcon = `<g opacity="0.75" ${iconGroupAttrs}>
+            <circle cx="0" cy="0" r="5" fill="#e0a050"/>
+            ${sunRays.map(r => `<line x1="${r.x1.toFixed(2)}" y1="${r.y1.toFixed(2)}" x2="${r.x2.toFixed(2)}" y2="${r.y2.toFixed(2)}" stroke="#e0a050" stroke-width="1.5" stroke-linecap="round"/>`).join('')}
+          </g>`;
+        } else {
+          // Inactive sun — engraved scratch (two layers: highlight + groove)
+          const rays = (stroke, dy) => sunRays.map(r =>
+            `<line x1="${r.x1.toFixed(2)}" y1="${(r.y1+dy).toFixed(2)}" x2="${r.x2.toFixed(2)}" y2="${(r.y2+dy).toFixed(2)}" stroke="${stroke}" stroke-width="1.3" stroke-linecap="round"/>`
+          ).join('');
+          dayNightIcon = `<g ${iconGroupAttrs}>
+            <circle cx="0" cy="1" r="5" fill="none" stroke="${iconScrH}" stroke-width="1.3"/>
+            ${rays(iconScrH, 1)}
+            <circle cx="0" cy="0" r="5" fill="none" stroke="${iconScrG}" stroke-width="1.3"/>
+            ${rays(iconScrG, 0)}
+          </g>`;
+        }
+      } else {
+        if (showSunArc) {
+          // Active moon — illuminated (current glow)
+          dayNightIcon = `<g ${iconGroupAttrs} filter="url(#pMoonGlow)">
+            <path d="M 5,-9 A 11,11 0 1,0 5,9 A 8,8 0 1,1 5,-9 Z" fill="#9fc6ff"/>
+          </g>`;
+        } else {
+          // Inactive moon — engraved scratch
+          const moonD = 'M 5,-9 A 11,11 0 1,0 5,9 A 8,8 0 1,1 5,-9 Z';
+          dayNightIcon = `<g ${iconGroupAttrs}>
+            <path d="${moonD}" fill="none" stroke="${iconScrH}" stroke-width="1.3" transform="translate(0,1)"/>
+            <path d="${moonD}" fill="none" stroke="${iconScrG}" stroke-width="1.3"/>
+          </g>`;
+        }
+      }
 
       // ---- Sunrise / sunset arc (iOS-widget style, no card background) ----
       initSunData();
       if (premiumSunData) refreshSunData(premiumSunData.lat, premiumSunData.lng);
 
       let sunArcSvg = '';
-      if (premiumSunData) {
+      if (premiumSunData && showSunArc) {
         const { sunrise, sunset } = premiumSunData;
         const nowMin = h24 * 60 + mins + secs / 60;
         const daySpan = sunset - sunrise;
@@ -6498,6 +6539,7 @@
     if (typeof savedSettings.showDateDisplay === 'boolean') showDateDisplay = savedSettings.showDateDisplay;
     if (typeof savedSettings.showTz === 'boolean') showTz = savedSettings.showTz;
     if (typeof savedSettings.showWorldClock === 'boolean') showWorldClock = savedSettings.showWorldClock;
+    if (typeof savedSettings.showSunArc === 'boolean') showSunArc = savedSettings.showSunArc;
     if (typeof savedSettings.lockScreenOnDone === 'boolean') {
       lockScreenToggle.checked = savedSettings.lockScreenOnDone;
       updateLockToggleUI(savedSettings.lockScreenOnDone);
