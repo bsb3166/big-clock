@@ -2691,6 +2691,14 @@
     let showTz = true;
     let showWorldClock = true;
     let showSunArc = false;   // Premium clock: toggle sunrise/sunset info by clicking the sun/moon icon
+
+    // Premium rAF state — declared at top of scope because updateClock() can be
+    // invoked (via setMode, etc.) before the rAF loop is started, and any access
+    // to these `let` bindings before their declaration line would throw TDZ.
+    let premiumRafId = null;
+    let premiumStateKey = '';
+    let premiumCurrSecEl = null;
+    let premiumNextSecEl = null;
     let ytHistory = [];      // [{videoId, title, author}]
     let ytHistoryIndex = -1;
     let ytNavigating = false; // true when prev/next is in progress
@@ -3860,7 +3868,10 @@
           const [sx1, sy1] = pt(outerR + P.secondPokeOut, a);
           const [sx2, sy2] = pt(outerR - P.secondLitLen, a);
           const op = (i === currSecIdx ? currSecOpacity : nextSecOpacity) * P.litOpacity;
-          ticks += `<line x1="${sx1.toFixed(2)}" y1="${sy1.toFixed(2)}" x2="${sx2.toFixed(2)}" y2="${sy2.toFixed(2)}" stroke="${P.warmGlowStrong}" stroke-width="${P.secondLitW}" stroke-linecap="round" opacity="${op.toFixed(3)}" filter="url(#pSecondGlow)"/>`;
+          // IDs enable the rAF loop to update opacity between second boundaries
+          // without rebuilding the whole SVG. See updatePremiumSubSecond.
+          const id = i === currSecIdx ? 'pCurrSec' : 'pNextSec';
+          ticks += `<line id="${id}" x1="${sx1.toFixed(2)}" y1="${sy1.toFixed(2)}" x2="${sx2.toFixed(2)}" y2="${sy2.toFixed(2)}" stroke="${P.warmGlowStrong}" stroke-width="${P.secondLitW}" stroke-linecap="round" opacity="${op.toFixed(3)}" filter="url(#pSecondGlow)"/>`;
         }
       }
 
@@ -6079,7 +6090,9 @@
       } else if (clockStyleSelect.value === 'timer') {
         renderTimerClock();
       } else if (clockStyleSelect.value === 'premium') {
-        renderPremiumClock(h24, now.getMinutes(), secs, now.getMilliseconds());
+        // Premium is driven entirely by its rAF loop (premiumTick). That loop's
+        // state snapshot covers every input the shell depends on, so any change
+        // is picked up within one frame without re-rendering from here.
       } else if (clockStyleSelect.value === 'flip') {
         renderFlipClock(hoursText, mins, ampmText);
       } else if (clockStyleSelect.value === 'segment') {
@@ -6639,15 +6652,44 @@
     }
     renderAlarmChips();
     renderTodoList();
+
     updateClock();
     setInterval(updateClock, 250);
 
-    // Smooth rAF loop for Premium Minimal — drives pendulum-eased second motion at 60fps
-    let premiumRafId = null;
+    function updatePremiumSubSecond(ms) {
+      if (!premiumCurrSecEl || !premiumNextSecEl) return;
+      const eased = premiumPendulumEase(ms / 1000);
+      const lit = PREMIUM.litOpacity;
+      premiumCurrSecEl.setAttribute('opacity', ((1 - eased) * lit).toFixed(3));
+      premiumNextSecEl.setAttribute('opacity', (eased * lit).toFixed(3));
+    }
+
+    function premiumStateSnapshot(secs) {
+      // Fingerprint of every input that can change the shell output. Any change
+      // → different key → full re-render. Sub-second ms is deliberately NOT in
+      // the key: it's handled by updatePremiumSubSecond without rebuilding.
+      const sd = premiumSunData;
+      return `${secs}|${use24Hour?1:0}|${showSunArc}|${relaxState.rain?1:0}${relaxState.crickets?1:0}${relaxState.thunder?1:0}|${relaxNaturePressed?1:0}|${relaxNatureLevel}|${sd ? sd.sunrise+','+sd.sunset : '-'}`;
+    }
+
     function premiumTick() {
       if (clockStyleSelect.value === 'premium') {
         const n = new Date();
-        renderPremiumClock(n.getHours(), n.getMinutes(), n.getSeconds(), n.getMilliseconds());
+        const ms = n.getMilliseconds();
+        const key = premiumStateSnapshot(n.getSeconds());
+        if (key !== premiumStateKey) {
+          renderPremiumClock(n.getHours(), n.getMinutes(), n.getSeconds(), ms);
+          premiumCurrSecEl = document.getElementById('pCurrSec');
+          premiumNextSecEl = document.getElementById('pNextSec');
+          premiumStateKey = key;
+        } else {
+          updatePremiumSubSecond(ms);
+        }
+      } else if (premiumStateKey) {
+        // Switched away from Premium — invalidate so re-entry triggers full render
+        premiumStateKey = '';
+        premiumCurrSecEl = null;
+        premiumNextSecEl = null;
       }
       premiumRafId = requestAnimationFrame(premiumTick);
     }
