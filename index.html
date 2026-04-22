@@ -1626,6 +1626,63 @@
       .preset-grid {
         grid-template-columns: repeat(3, minmax(0, 1fr));
       }
+
+      /* ── Date / YouTube / World clocks ──
+         At desktop widths these use absolute positioning to float above/below
+         the clock. At narrow widths the stack is taller than the available
+         gap above the clock and the world-clock row overflows horizontally,
+         so we fall back to in-flow layout and let .app scroll vertically. */
+      .date-info-container {
+        position: static !important;
+        transform: none !important;
+        top: auto !important;
+        width: 100%;
+        padding: 8px 14px 4px;
+        pointer-events: auto;
+      }
+      .world-clocks {
+        position: static !important;
+        transform: none !important;
+        top: auto !important;
+        display: flex !important;
+        flex-wrap: wrap;
+        justify-content: center;
+        gap: 8px;
+        padding: 6px 14px 12px;
+        pointer-events: auto;
+      }
+      .world-clock {
+        min-width: 80px;
+        flex: 1 1 80px;
+        max-width: calc(33% - 6px);
+      }
+
+      /* To-do panel: absolute-positioned floating panel overlaps content here too */
+      .todo-panel {
+        position: static !important;
+        transform: none !important;
+        bottom: auto !important;
+        left: auto !important;
+        width: auto !important;
+        min-width: 0;
+        height: auto !important;
+        min-height: 180px;
+        max-height: 320px;
+        margin: 10px 14px;
+        resize: none;
+      }
+      .todo-panel.collapsed { display: none; opacity: 1; transform: none; }
+      .todo-fab {
+        position: static !important;
+        transform: none !important;
+        display: none;
+        margin: 8px 14px;
+      }
+      .todo-fab.visible {
+        display: flex;
+        width: calc(100% - 28px);
+        justify-content: center;
+      }
     }
 
     @media (max-width: 640px) {
@@ -5684,8 +5741,11 @@
       const wcEl = document.getElementById('worldClocks');
       const dateInfoEl = document.getElementById('dateInfo');
 
-      if (isMobile()) {
-        // Let CSS handle layout on mobile; clear any JS-set inline positions
+      // At ≤900px, CSS switches date-info-container / world-clocks / floating
+      // panels to in-flow layout — clear any inline `top` so the CSS wins and
+      // the page can scroll to show everything. (600px is the mobile-portrait
+      // cutoff, but the same flow layout is needed up to 900px.)
+      if (window.innerWidth <= 900) {
         if (wcEl) {
           wcEl.style.top = '';
           wcEl.style.display = showWorldClock ? '' : 'none';
