@@ -2166,7 +2166,7 @@
       <div class="date" id="date">Sunday, March 29, 2026</div>
       <div class="lunar-date" id="lunarDate">丙午年二月十二</div>
       <div class="moon-phase" id="moonPhase">
-        <img id="moonPhaseImg" src="https://copyexchange.com/liveClock/img/fullMoon.png" alt="Moon">
+        <img id="moonPhaseImg" src="assets/fullMoon.png" alt="Moon">
         <div class="moon-phase-name" id="moonPhaseName">Full Moon</div>
       </div>
       <div class="tz" id="tz">PDT · PACIFIC DAYLIGHT TIME</div>
@@ -3953,8 +3953,8 @@
       }
 
       // ---- Sunrise / sunset arc (iOS-widget style, no card background) ----
-      initSunData();
-      if (premiumSunData) refreshSunData(premiumSunData.lat, premiumSunData.lng);
+      // Sun data is initialized once at startup and refreshed once per day from
+      // updateClock — no work needs to happen per render.
 
       let sunArcSvg = '';
       if (premiumSunData && showSunArc) {
@@ -6048,14 +6048,14 @@
     }
 
     const MOON_PHASES = [
-      { name: 'New Moon',        emoji: '\u{1F311}', img: 'https://copyexchange.com/liveClock/img/newMoon.png' },
-      { name: 'Waxing Crescent', emoji: '\u{1F312}', img: 'https://copyexchange.com/liveClock/img/newCrescent1.png' },
-      { name: 'First Quarter',   emoji: '\u{1F313}', img: 'https://copyexchange.com/liveClock/img/firstQuarter1.png' },
-      { name: 'Waxing Gibbous',  emoji: '\u{1F314}', img: 'https://copyexchange.com/liveClock/img/waxingGibbous.png' },
-      { name: 'Full Moon',       emoji: '\u{1F315}', img: 'https://copyexchange.com/liveClock/img/fullMoon.png' },
-      { name: 'Waning Gibbous',  emoji: '\u{1F316}', img: 'https://copyexchange.com/liveClock/img/waningGibbous.png' },
-      { name: 'Last Quarter',    emoji: '\u{1F317}', img: 'https://copyexchange.com/liveClock/img/lastQuarter1.png' },
-      { name: 'Waning Crescent', emoji: '\u{1F318}', img: 'https://copyexchange.com/liveClock/img/oldCrescent1.png' }
+      { name: 'New Moon',        emoji: '\u{1F311}', img: 'assets/newMoon.png' },
+      { name: 'Waxing Crescent', emoji: '\u{1F312}', img: 'assets/newCrescent1.png' },
+      { name: 'First Quarter',   emoji: '\u{1F313}', img: 'assets/firstQuarter1.png' },
+      { name: 'Waxing Gibbous',  emoji: '\u{1F314}', img: 'assets/waxingGibbous.png' },
+      { name: 'Full Moon',       emoji: '\u{1F315}', img: 'assets/fullMoon.png' },
+      { name: 'Waning Gibbous',  emoji: '\u{1F316}', img: 'assets/waningGibbous.png' },
+      { name: 'Last Quarter',    emoji: '\u{1F317}', img: 'assets/lastQuarter1.png' },
+      { name: 'Waning Crescent', emoji: '\u{1F318}', img: 'assets/oldCrescent1.png' }
     ];
 
     function getMoonPhase(date) {
@@ -6093,6 +6093,13 @@
         // Premium is driven entirely by its rAF loop (premiumTick). That loop's
         // state snapshot covers every input the shell depends on, so any change
         // is picked up within one frame without re-rendering from here.
+        //
+        // Sun data: initSunData() is a no-op after the first call; refreshSunData
+        // early-returns unless the date has rolled over. This runs ~4× per second
+        // (setInterval-driven), not per rAF frame, and all work is skipped except
+        // on date change.
+        initSunData();
+        if (premiumSunData) refreshSunData(premiumSunData.lat, premiumSunData.lng);
       } else if (clockStyleSelect.value === 'flip') {
         renderFlipClock(hoursText, mins, ampmText);
       } else if (clockStyleSelect.value === 'segment') {
