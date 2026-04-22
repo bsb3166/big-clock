@@ -1587,6 +1587,14 @@
         transform: none;
         margin: 0 auto 12px;
       }
+      /* The base desktop :hover rule applies translateX(-50%) to slide the
+         absolute-positioned panel into place. On this breakpoint the panel
+         is static, so that same transform shifts it LEFT by half its width
+         and clips it off-screen. Override with `none` to keep it in flow. */
+      .topbar-wrapper:hover .topbar,
+      .topbar-wrapper:focus-within .topbar {
+        transform: none !important;
+      }
 
       .center {
         position: relative;
